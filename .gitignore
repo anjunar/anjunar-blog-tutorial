@@ -1,0 +1,17 @@
+target/
+.bsp/
+.metals/
+.idea/
+.vscode/
+*.iml
+.env
+.env.*
+!.env.example
+application.properties
+*.log
+ObjectStore/
+PutObjectStoreDirHere/
+
+node_modules/
+test-results/
+playwright-report/

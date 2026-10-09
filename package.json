@@ -1,0 +1,27 @@
+{
+  "name": "anjunar-blog-example",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test:browser:ssr": "sbt --server frontendAssets && playwright test --config=playwright.ssr.config.mjs",
+    "test:browser": "sbt --server frontendAssets && playwright test --project=contracts",
+    "test:browser:i18n": "sbt --server frontendAssets && playwright test --project=contracts tests/browser/i18n.spec.mjs",
+    "test:browser:translations": "sbt --server frontendAssets && playwright test --project=translations",
+    "test:browser:documents": "sbt --server frontendAssets && playwright test --project=documents",
+    "test:browser:media": "sbt --server frontendAssets && playwright test --project=media",
+    "test:browser:relationships": "sbt --server frontendAssets && playwright test --project=relationships",
+    "test:browser:search": "sbt --server frontendAssets && playwright test --project=search",
+    "test:browser:forms": "sbt --server frontendAssets && playwright test --project=forms",
+    "test:browser:changes": "sbt --server frontendAssets && playwright test --project=changes",
+    "test:browser:editorial": "sbt --server frontendAssets && playwright test --project=editorial",
+    "test:browser:database": "sbt --server frontendAssets && playwright test --project=database",
+    "test:browser:recovery": "sbt --server frontendAssets && playwright test --project=recovery",
+    "test:browser:auth": "sbt --server frontendAssets && playwright test --project=authentication"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0"
+  },
+  "dependencies": {
+    "@fontsource/material-icons": "5.3.0"
+  }
+}
