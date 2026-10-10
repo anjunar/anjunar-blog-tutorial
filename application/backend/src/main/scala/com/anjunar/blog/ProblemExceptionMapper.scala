@@ -11,10 +11,8 @@ import org.hibernate.exception.{ConstraintViolationException as SqlConstraintExc
 import org.slf4j.LoggerFactory
 
 import java.util
-import java.util.UUID
 import scala.compiletime.uninitialized
 import scala.jdk.CollectionConverters.*
-
 
 @Provider
 class ProblemExceptionMapper extends ExceptionMapper[Throwable] {

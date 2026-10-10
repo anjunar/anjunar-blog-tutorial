@@ -44,7 +44,9 @@ class AccountRecovery {
   def complete(input: TokenPasswordRequest, purpose: String): Unit = {
     val digest = AccountToken.digest(input.token)
     val email = Option(manager.createQuery(
-      "select t.email from AccountToken t where t.digest = :digest and t.purpose = :purpose", classOf[String])
+      "select t.email from AccountToken t where t.digest = :digest and t.purpose = :purpose",
+      classOf[String]
+    )
       .setParameter("digest", digest).setParameter("purpose", purpose).getSingleResultOrNull)
       .getOrElse(invalid())
     lockEmail(email)
@@ -70,12 +72,17 @@ class AccountRecovery {
   }
 
   private def removeTokens(email: String, purpose: String): Unit =
-    manager.createQuery("select t from AccountToken t where t.email = :email and t.purpose = :purpose", classOf[AccountToken])
+    manager.createQuery(
+      "select t from AccountToken t where t.email = :email and t.purpose = :purpose",
+      classOf[AccountToken]
+    )
       .setParameter("email", email).setParameter("purpose", purpose).getResultList.asScala.foreach(manager.remove)
 
   private def lockEmail(email: String): Unit =
     manager.createNativeQuery(
-      "select 1 from pg_advisory_xact_lock(hashtextextended(:email, 12012))", classOf[lang.Integer])
+      "select 1 from pg_advisory_xact_lock(hashtextextended(:email, 12012))",
+      classOf[lang.Integer]
+    )
       .setParameter("email", email).getSingleResult
 
   private def invalid(): Nothing = throw new BadRequestException("The link is invalid or has expired")

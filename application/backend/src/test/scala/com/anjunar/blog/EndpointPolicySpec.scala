@@ -16,8 +16,10 @@ class EndpointPolicySpec extends AnyFunSuite {
   }
 
   test("unannotated endpoints are closed and conflicting policies fail") {
-    assert(!EndpointPolicy.of(classOf[UnannotatedFixture].getMethod("closed"),
-      classOf[UnannotatedFixture]).allows(_ => true))
+    assert(!EndpointPolicy.of(
+      classOf[UnannotatedFixture].getMethod("closed"),
+      classOf[UnannotatedFixture]
+    ).allows(_ => true))
     intercept[IllegalArgumentException](policy("conflicting"))
   }
 }

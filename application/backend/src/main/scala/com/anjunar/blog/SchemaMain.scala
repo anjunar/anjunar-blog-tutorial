@@ -13,12 +13,13 @@ import scala.util.Using
 object SchemaMain {
   def main(args: Array[String]): Unit = {
     val (command, adoptExisting) = args.toList match {
-      case List("preview") => ("preview", false)
+      case List("preview")                     => ("preview", false)
       case List("preview", "--adopt-existing") => ("preview", true)
-      case List("migrate") => ("migrate", false)
+      case List("migrate")                     => ("migrate", false)
       case List("migrate", "--adopt-existing") => ("migrate", true)
-      case _ => throw new IllegalArgumentException(
-        "Usage: SchemaMain preview|migrate [--adopt-existing]")
+      case _                                   => throw new IllegalArgumentException(
+          "Usage: SchemaMain preview|migrate [--adopt-existing]"
+        )
     }
 
     val config = DatabaseConfig.load()
@@ -31,8 +32,8 @@ object SchemaMain {
             val report = HibernateSchemaMigration.preview(metadata, dataSource, options)
             println(PreviewRendering.text(report))
             report.outcome match {
-              case PreviewOutcome.Ready => 0
-              case PreviewOutcome.Blocked => 2
+              case PreviewOutcome.Ready      => 0
+              case PreviewOutcome.Blocked    => 2
               case PreviewOutcome.Incomplete => 3
             }
           case "migrate" =>
@@ -46,7 +47,8 @@ object SchemaMain {
   }
 
   private[blog] def withMetadata[A](config: DatabaseConfig, entities: EntityRegistry)(
-      work: (Metadata, DataSource) => A): A = {
+    work: (Metadata, DataSource) => A
+  ): A = {
     val dataSource = new PGSimpleDataSource()
     dataSource.setUrl(config.url)
     dataSource.setUser(config.user)

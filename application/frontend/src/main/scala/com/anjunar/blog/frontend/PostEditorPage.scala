@@ -31,10 +31,13 @@ import ui.router.RouterLink.routerLink
 import scala.concurrent.ExecutionContext
 import scala.scalajs.js
 
-final class PostEditorPage(initial: BlogPostData, service: EditorialService,
-    initialCatalog: Option[CatalogData] = None, catalogService: CatalogService = null,
-    mediaService: MediaService = null)
-    (using ExecutionContext) extends AbstractComponent {
+final class PostEditorPage(
+  initial: BlogPostData,
+  service: EditorialService,
+  initialCatalog: Option[CatalogData] = None,
+  catalogService: CatalogService = null,
+  mediaService: MediaService = null
+)(using ExecutionContext) extends AbstractComponent {
   import SaveNotice.*
 
   val tagName = "section"
@@ -50,27 +53,40 @@ final class PostEditorPage(initial: BlogPostData, service: EditorialService,
   override def compose(cursor: Cursor): Unit = {
     import ui.core.dsl.AttributeDsl.{setAttribute as attr}
     addDisposable(() => actions.dispose())
-    LanguageNavigation.protect((post.editableFields ++ Seq(post.id, post.author, post.tags,
-      post.coverImage, actions.busy, actions.dirty, embeddedUpload) ++ uploads.toSeq.map(_.busy))*) {
+    LanguageNavigation.protect((post.editableFields ++ Seq(
+      post.id,
+      post.author,
+      post.tags,
+      post.coverImage,
+      actions.busy,
+      actions.dirty,
+      embeddedUpload
+    ) ++ uploads.toSeq.map(_.busy))*) {
       actions.busy.get || embeddedUpload.get.pending > 0 || uploads.exists(_.busy.get) ||
-        (if (post.id.get.isEmpty) post.snapshot != openingSnapshot else post.isDirty)
+      (if (post.id.get.isEmpty) post.snapshot != openingSnapshot else post.isDirty)
     }(using this)
     uploads.foreach(value => addDisposable(() => value.dispose()))
     catalog.foreach(value => addDisposable(() => value.dispose()))
     render(this, cursor) {
       classes = "post-editor"
       paragraph { classes = "eyebrow"; text(i18n"Editorial") {} }
-      heading(1) { text(post.id.map(value =>
-        if (value.isEmpty) i18n"New post" else i18n"Edit post")) {} }
+      heading(1) {
+        text(post.id.map(value =>
+          if (value.isEmpty) i18n"New post" else i18n"Edit post"
+        )) {}
+      }
       paragraph { text(i18n"Save your text here. Publication is managed from the preview.") {} }
       form(post) { mountedForm ?=>
         classes = "post-form"
         attr("novalidate", "")
         mountedForm.addDisposable(actions.errors.observe(values =>
-          mountedForm.setErrorResponses(values.map(value => ErrorResponse(value.message, value.path)))))
+          mountedForm.setErrorResponses(values.map(value => ErrorResponse(value.message, value.path)))
+        ))
         on("submit") { event =>
           event.preventDefault()
-          if (!actions.busy.get && !actions.blocked.get && !uploads.exists(_.busy.get) && embeddedUpload.get.pending == 0) {
+          if (
+            !actions.busy.get && !actions.blocked.get && !uploads.exists(_.busy.get) && embeddedUpload.get.pending == 0
+          ) {
             mountedForm.clearErrors()
             actions.generalError.set("")
             val bindings = mountedForm.validateBindings()
@@ -79,10 +95,11 @@ final class PostEditorPage(initial: BlogPostData, service: EditorialService,
             else if (validation.nonEmpty) actions.notice.set(Invalid)
             else if (post.coverImage.get != null && Option(post.coverAlt.get).forall(_.isBlank)) {
               mountedForm.setErrorResponses(Seq(ErrorResponse(
-                I18nRuntime.require.resolveNow(i18n"Describe the cover image."), Seq("coverAlt"))))
+                I18nRuntime.require.resolveNow(i18n"Describe the cover image."),
+                Seq("coverAlt")
+              )))
               actions.notice.set(Invalid)
-            }
-            else actions.save(() => {
+            } else actions.save(() => {
               if (wasNew && !actions.dirty.get) Router.replace(s"/editorial/posts/${post.id.get}/edit")
             })
           }
@@ -94,9 +111,13 @@ final class PostEditorPage(initial: BlogPostData, service: EditorialService,
             id = "post-title"
             attr("aria-describedby", "post-title-errors")
             fieldInput.addDisposable(fieldInput.invalid.observe(value =>
-              attr("aria-invalid", value.toString)))
+              attr("aria-invalid", value.toString)
+            ))
           }
-          paragraph { id = "post-title-errors"; classes = "field-error"; text(control.errors.map((values: js.Array[String]) => values.mkString(", "))) {} }
+          paragraph {
+            id = "post-title-errors"; classes = "field-error";
+            text(control.errors.map((values: js.Array[String]) => values.mkString(", "))) {}
+          }
         }
         div {
           classes = "post-field"
@@ -106,10 +127,17 @@ final class PostEditorPage(initial: BlogPostData, service: EditorialService,
             spellCheck = false
             attr("aria-describedby", "post-slug-help post-slug-errors")
             fieldInput.addDisposable(fieldInput.invalid.observe(value =>
-              attr("aria-invalid", value.toString)))
+              attr("aria-invalid", value.toString)
+            ))
           }
-          paragraph { id = "post-slug-help"; classes = "field-help"; text(i18n"Use lowercase words separated by hyphens. Changing this changes the public URL.") {} }
-          paragraph { id = "post-slug-errors"; classes = "field-error"; text(control.errors.map((values: js.Array[String]) => values.mkString(", "))) {} }
+          paragraph {
+            id = "post-slug-help"; classes = "field-help";
+            text(i18n"Use lowercase words separated by hyphens. Changing this changes the public URL.") {}
+          }
+          paragraph {
+            id = "post-slug-errors"; classes = "field-error";
+            text(control.errors.map((values: js.Array[String]) => values.mkString(", "))) {}
+          }
         }
         div {
           classes = "post-field"
@@ -119,10 +147,17 @@ final class PostEditorPage(initial: BlogPostData, service: EditorialService,
             attr("rows", "3")
             attr("aria-describedby", "post-summary-help post-summary-errors")
             fieldInput.addDisposable(fieldInput.invalid.observe(value =>
-              attr("aria-invalid", value.toString)))
+              attr("aria-invalid", value.toString)
+            ))
           }
-          paragraph { id = "post-summary-help"; classes = "field-help"; text(i18n"Up to 300 characters. Leave it empty to clear the summary.") {} }
-          paragraph { id = "post-summary-errors"; classes = "field-error"; text(control.errors.map((values: js.Array[String]) => values.mkString(", "))) {} }
+          paragraph {
+            id = "post-summary-help"; classes = "field-help";
+            text(i18n"Up to 300 characters. Leave it empty to clear the summary.") {}
+          }
+          paragraph {
+            id = "post-summary-errors"; classes = "field-error";
+            text(control.errors.map((values: js.Array[String]) => values.mkString(", "))) {}
+          }
         }
         div {
           classes = "post-field"
@@ -134,9 +169,15 @@ final class PostEditorPage(initial: BlogPostData, service: EditorialService,
               attr("rows", "12")
               attr("aria-describedby", "post-content-help post-content-errors")
               fieldInput.addDisposable(fieldInput.invalid.observe(value =>
-                attr("aria-invalid", value.toString)))
+                attr("aria-invalid", value.toString)
+              ))
             }
-            paragraph { id = "post-content-help"; classes = "field-help"; text(i18n"This post uses plain text. Enable the editor to add formatting; existing punctuation stays literal.") {} }
+            paragraph {
+              id = "post-content-help"; classes = "field-help";
+              text(
+                i18n"This post uses plain text. Enable the editor to add formatting; existing punctuation stays literal."
+              ) {}
+            }
             button(i18n"Enable rich text") {
               buttonType("button")
               disabled = actions.busy
@@ -145,12 +186,16 @@ final class PostEditorPage(initial: BlogPostData, service: EditorialService,
                 post.contentFormat.set("MARKDOWN")
               }
             }
-            paragraph { id = "post-content-errors"; classes = "field-error"; text(control.errors.map((values: js.Array[String]) => values.mkString(", "))) {} }
+            paragraph {
+              id = "post-content-errors"; classes = "field-error";
+              text(control.errors.map((values: js.Array[String]) => values.mkString(", "))) {}
+            }
           }
           when(post.contentFormat.map(_ == "MARKDOWN")) {
             paragraph { id = "post-content-label"; text(i18n"Content") {} }
             button(sourceMode.map(source =>
-              if (source) i18n"Visual editor" else i18n"Edit Markdown")) {
+              if (source) i18n"Visual editor" else i18n"Edit Markdown"
+            )) {
               buttonType("button")
               disabled = embeddedUpload.map(_.pending > 0)
               onClick(_ => sourceMode.set(!sourceMode.get))
@@ -170,30 +215,49 @@ final class PostEditorPage(initial: BlogPostData, service: EditorialService,
               imagePlugin()
               codePlugin()
               document.addDisposable(document.invalid.observe(value =>
-                attr("aria-invalid", value.toString)))
+                attr("aria-invalid", value.toString)
+              ))
             }
-            paragraph { id = "post-content-help"; classes = "field-help"; text(i18n"Formatting is saved as Markdown. Upload JPEG or PNG images and add alternative text before saving.") {} }
-            paragraph { id = "post-content-errors"; classes = "field-error"; text(control.errors.map((values: js.Array[String]) => values.mkString(", "))) {} }
+            paragraph {
+              id = "post-content-help"; classes = "field-help";
+              text(
+                i18n"Formatting is saved as Markdown. Upload JPEG or PNG images and add alternative text before saving."
+              ) {}
+            }
+            paragraph {
+              id = "post-content-errors"; classes = "field-error";
+              text(control.errors.map((values: js.Array[String]) => values.mkString(", "))) {}
+            }
           }
         }
         uploads.foreach { upload =>
           div {
             classes = "post-field post-cover-field"
             label { attr("for", "post-cover-file"); text(i18n"Cover image") {} }
-            child(new ImageFileInput(upload.busy.flatMap(busy => actions.blocked.map(blocked => busy || blocked)), upload.upload)) {}
-            paragraph { id = "post-cover-help"; classes = "field-help"; text(i18n"JPEG or PNG, up to 5 MiB and 12 megapixels. Upload first, then save the post to keep this image.") {} }
+            child(new ImageFileInput(
+              upload.busy.flatMap(busy => actions.blocked.map(blocked => busy || blocked)),
+              upload.upload
+            )) {}
+            paragraph {
+              id = "post-cover-help"; classes = "field-help";
+              text(
+                i18n"JPEG or PNG, up to 5 MiB and 12 megapixels. Upload first, then save the post to keep this image."
+              ) {}
+            }
             when(upload.busy) { paragraph { role = "status"; text(i18n"Uploading image…") {} } }
             when(upload.error.map(_.nonEmpty)) {
               paragraph {
                 role = "alert"
-                text(upload.error.map(status => status match {
-                  case Some(413) => i18n"The image is too large. Choose a smaller file."
-                  case Some(415) => i18n"Choose a JPEG or PNG image."
-                  case Some(400) => i18n"The image could not be decoded. Check its format and dimensions."
-                  case Some(401) | Some(403) => i18n"Sign in with permission to upload images."
-                  case Some(429) => i18n"The server is processing other images. Try again shortly."
-                  case _ => i18n"The upload could not be confirmed. Your post has not changed."
-                })) {}
+                text(upload.error.map(status =>
+                  status match {
+                    case Some(413)             => i18n"The image is too large. Choose a smaller file."
+                    case Some(415)             => i18n"Choose a JPEG or PNG image."
+                    case Some(400)             => i18n"The image could not be decoded. Check its format and dimensions."
+                    case Some(401) | Some(403) => i18n"Sign in with permission to upload images."
+                    case Some(429)             => i18n"The server is processing other images. Try again shortly."
+                    case _                     => i18n"The upload could not be confirmed. Your post has not changed."
+                  }
+                )) {}
               }
             }
             when(post.coverImage.map(_ != null)) {
@@ -215,10 +279,17 @@ final class PostEditorPage(initial: BlogPostData, service: EditorialService,
               id = "post-cover-alt"
               attr("aria-describedby", "post-cover-alt-help post-cover-alt-errors")
               fieldInput.addDisposable(fieldInput.invalid.observe(value =>
-                attr("aria-invalid", value.toString)))
+                attr("aria-invalid", value.toString)
+              ))
             }
-            paragraph { id = "post-cover-alt-help"; classes = "field-help"; text(i18n"Describe what the image adds to the post. Required when an image is selected.") {} }
-            paragraph { id = "post-cover-alt-errors"; classes = "field-error"; text(description.errors.map((values: js.Array[String]) => values.mkString(", "))) {} }
+            paragraph {
+              id = "post-cover-alt-help"; classes = "field-help";
+              text(i18n"Describe what the image adds to the post. Required when an image is selected.") {}
+            }
+            paragraph {
+              id = "post-cover-alt-errors"; classes = "field-error";
+              text(description.errors.map((values: js.Array[String]) => values.mkString(", "))) {}
+            }
           }
         }
         catalog.foreach { options =>
@@ -240,41 +311,63 @@ final class PostEditorPage(initial: BlogPostData, service: EditorialService,
                 })
               })
               choice.addDisposable(choice.invalid.observe(value =>
-                attr("aria-invalid", value.toString)))
+                attr("aria-invalid", value.toString)
+              ))
             }
-            paragraph { id = "post-author-help"; classes = "field-help"; text(i18n"Only the public name appears with the post.") {} }
-            paragraph { id = "post-author-errors"; classes = "field-error"; text(control.errors.map((values: js.Array[String]) => values.mkString(", "))) {} }
+            paragraph {
+              id = "post-author-help"; classes = "field-help";
+              text(i18n"Only the public name appears with the post.") {}
+            }
+            paragraph {
+              id = "post-author-errors"; classes = "field-error";
+              text(control.errors.map((values: js.Array[String]) => values.mkString(", "))) {}
+            }
             button(i18n"Clear author") { buttonType("button"); onClick(_ => post.author.set(null)) }
             when(options.nextAuthors.map(_.nonEmpty)) {
-              button(i18n"Load more authors") { buttonType("button"); disabled = options.busy; onClick(_ => options.moreAuthors()) }
+              button(i18n"Load more authors") {
+                buttonType("button"); disabled = options.busy; onClick(_ => options.moreAuthors())
+              }
             }
           }
           div {
             classes = "post-field"
             label { id = "post-tags-label"; text(i18n"Tags") {} }
             val control = child(new TagSelection(options.tags.map(_.map(_.data)))) {}
-            paragraph { id = "post-tags-help"; classes = "field-help"; text(i18n"Choose up to 20 shared tags. Removing a selection keeps the tag available to other posts.") {} }
-            paragraph { id = "post-tags-errors"; classes = "field-error"; text(control.errors.map((values: js.Array[String]) => values.mkString(", "))) {} }
+            paragraph {
+              id = "post-tags-help"; classes = "field-help";
+              text(i18n"Choose up to 20 shared tags. Removing a selection keeps the tag available to other posts.") {}
+            }
+            paragraph {
+              id = "post-tags-errors"; classes = "field-error";
+              text(control.errors.map((values: js.Array[String]) => values.mkString(", "))) {}
+            }
             button(i18n"Clear tags") { buttonType("button"); onClick(_ => post.tags.clear()) }
             when(options.nextTags.map(_.nonEmpty)) {
-              button(i18n"Load more tags") { buttonType("button"); disabled = options.busy; onClick(_ => options.moreTags()) }
+              button(i18n"Load more tags") {
+                buttonType("button"); disabled = options.busy; onClick(_ => options.moreTags())
+              }
             }
           }
-          when(options.failed) { paragraph { role = "alert"; text(i18n"More choices could not be loaded. Try the load button again.") {} } }
+          when(options.failed) {
+            paragraph { role = "alert"; text(i18n"More choices could not be loaded. Try the load button again.") {} }
+          }
         }
         when(actions.notice.map(_.isError)) {
           div {
             role = "alert"
             classes = "form-error"
             paragraph {
-              text(actions.notice.map(value => value match {
-                case Invalid => i18n"Review the fields and save again."
-                case Conflict => i18n"This post changed elsewhere. Your edits are still here. Copy what you need before discarding and reloading."
-                case SignedOut => i18n"Your session ended. Your edits are still here. Sign in again before reloading."
-                case Forbidden => i18n"You can no longer save this post. Your edits are still here."
-                case BindingFailed => i18n"The form could not bind its fields. Saving is unavailable."
-                case _ => i18n"The save could not be confirmed. Check the editorial list before trying again."
-              })) {}
+              text(actions.notice.map(value =>
+                value match {
+                  case Invalid  => i18n"Review the fields and save again."
+                  case Conflict =>
+                    i18n"This post changed elsewhere. Your edits are still here. Copy what you need before discarding and reloading."
+                  case SignedOut => i18n"Your session ended. Your edits are still here. Sign in again before reloading."
+                  case Forbidden => i18n"You can no longer save this post. Your edits are still here."
+                  case BindingFailed => i18n"The form could not bind its fields. Saving is unavailable."
+                  case _ => i18n"The save could not be confirmed. Check the editorial list before trying again."
+                }
+              )) {}
             }
             when(actions.generalError.map(_.nonEmpty)) { paragraph { text(actions.generalError) {} } }
           }
@@ -283,17 +376,24 @@ final class PostEditorPage(initial: BlogPostData, service: EditorialService,
           classes = "editorial-controls"
           button(i18n"Save post") {
             buttonType("submit")
-            disabled = actions.busy.flatMap(busy => actions.blocked.flatMap(blocked =>
-              embeddedUpload.flatMap(status => uploads.map(_.busy.map(uploading =>
-                busy || blocked || uploading || status.pending > 0))
-                .getOrElse(Property(busy || blocked || status.pending > 0)))))
+            disabled = actions.busy.flatMap(busy =>
+              actions.blocked.flatMap(blocked =>
+                embeddedUpload.flatMap(status =>
+                  uploads.map(_.busy.map(uploading =>
+                    busy || blocked || uploading || status.pending > 0
+                  ))
+                    .getOrElse(Property(busy || blocked || status.pending > 0))
+                )
+              )
+            )
           }
           when(actions.busy) { paragraph { role = "status"; text(i18n"Saving… You can keep writing.") {} } }
           when(actions.notice.map(value => value == Saved || value == NewerEdits)) {
             paragraph {
               role = "status"
               text(actions.notice.map(value =>
-                if (value == Saved) i18n"Saved." else i18n"Saved. Your newer edits still need saving.")) {}
+                if (value == Saved) i18n"Saved." else i18n"Saved. Your newer edits still need saving."
+              )) {}
             }
           }
         }
@@ -306,7 +406,8 @@ final class PostEditorPage(initial: BlogPostData, service: EditorialService,
             button(i18n"Discard my edits and reload") {
               buttonType("button")
               onClick { _ =>
-                if (cursor.isBrowser) dom.window.location.assign(Router.requireCurrent.hrefFor(s"/editorial/posts/${post.id.get}/edit"))
+                if (cursor.isBrowser)
+                  dom.window.location.assign(Router.requireCurrent.hrefFor(s"/editorial/posts/${post.id.get}/edit"))
               }
             }
           }

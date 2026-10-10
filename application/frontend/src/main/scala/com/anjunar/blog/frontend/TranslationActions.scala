@@ -6,8 +6,10 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.scalajs.js
 import scala.util.{Failure, Success, Try}
 
-final class TranslationActions(initial: TranslationData,
-    send: (ApiLink, js.Dynamic) => Future[TranslationData])(using ExecutionContext) {
+final class TranslationActions(
+  initial: TranslationData,
+  send: (ApiLink, js.Dynamic) => Future[TranslationData]
+)(using ExecutionContext) {
   val translation = initial.data
   val links = Property(initial.links)
   val busy = Property(false)
@@ -31,7 +33,7 @@ final class TranslationActions(initial: TranslationData,
     links.get.find(_.rel == relation).foreach { link =>
       val submitted = translation.snapshot
       val body = if (saving) translation.writeBody()
-        else js.Dynamic.literal(version = translation.version.get.toDouble)
+      else js.Dynamic.literal(version = translation.version.get.toDouble)
       busy.set(true)
       notice.set(SaveNotice.Idle)
       errors.set(Seq.empty)
@@ -48,11 +50,14 @@ final class TranslationActions(initial: TranslationData,
               val http = error match { case failure: HttpFailure => Some(failure); case _ => None }
               val fields = http.flatMap(_.problem).toSeq.flatMap(value => Option(value.errors).getOrElse(Seq.empty))
                 .filter(value => value != null && value.path != null && value.message != null)
-              generalError.set(fields.filter(value => value.path.size != 1 ||
-                !Seq("title", "summary", "content").contains(value.path.head)).map(_.message).mkString(" "))
+              generalError.set(fields.filter(value =>
+                value.path.size != 1 ||
+                  !Seq("title", "summary", "content").contains(value.path.head)
+              ).map(_.message).mkString(" "))
               errors.set(fields.filter { value =>
                 val index = if (value != null && value.path != null && value.path.size == 1)
-                  Seq("title", "summary", "content").indexOf(value.path.head) else -1
+                  Seq("title", "summary", "content").indexOf(value.path.head)
+                else -1
                 index >= 0 && submitted(index) == translation.snapshot(index)
               })
               val status = http.map(_.status).getOrElse(0)
@@ -62,7 +67,7 @@ final class TranslationActions(initial: TranslationData,
                 case 409 => SaveNotice.Conflict
                 case 401 => SaveNotice.SignedOut
                 case 403 => SaveNotice.Forbidden
-                case _ => SaveNotice.Unconfirmed
+                case _   => SaveNotice.Unconfirmed
               })
           }
           busy.set(false)

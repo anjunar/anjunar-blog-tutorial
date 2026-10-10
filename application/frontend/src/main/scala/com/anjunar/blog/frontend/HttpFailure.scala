@@ -10,4 +10,3 @@ import scala.util.Try
 
 final class HttpFailure(val status: Int, val problem: Option[ProblemDetails] = None)
     extends RuntimeException(s"HTTP $status")
-

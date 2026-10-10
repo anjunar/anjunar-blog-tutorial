@@ -43,8 +43,16 @@ object PageHead {
       .getOrElse(dom.window.location.origin)
 
   private def feed(origin: String, locale: String): HeadEntry =
-    HeadEntry("feed", "link", Seq("rel" -> "alternate", "type" -> "application/atom+xml",
-      "title" -> s"Anjunar Journal ($locale)", "href" -> s"$origin/$locale/feed.xml"))
+    HeadEntry(
+      "feed",
+      "link",
+      Seq(
+        "rel" -> "alternate",
+        "type" -> "application/atom+xml",
+        "title" -> s"Anjunar Journal ($locale)",
+        "href" -> s"$origin/$locale/feed.xml"
+      )
+    )
 
   private def social(title: String, description: String, url: String, kind: String): Seq[HeadEntry] = Seq(
     HeadEntry.title(s"$title — Anjunar Journal"),
@@ -53,7 +61,8 @@ object PageHead {
     HeadEntry.property("og:description", description),
     HeadEntry.property("og:type", kind),
     HeadEntry.property("og:url", url),
-    HeadEntry.property("og:site_name", "Anjunar Journal"))
+    HeadEntry.property("og:site_name", "Anjunar Journal")
+  )
 
   def article(origin: String, post: BlogPost): Seq[HeadEntry] = {
     val translation = Option(post.translation.get)
@@ -64,35 +73,60 @@ object PageHead {
     val canonical = s"$origin/$locale/posts/${post.slug.get}"
     val languages = (Seq("en") ++ post.availableLocales.toSeq.filter(_ == "de")).distinct
     val alternates = languages.map(language =>
-      HeadEntry.alternate(language, s"$origin/$language/posts/${post.slug.get}")) :+
+      HeadEntry.alternate(language, s"$origin/$language/posts/${post.slug.get}")
+    ) :+
       HeadEntry.alternate("x-default", s"$origin/en/posts/${post.slug.get}")
-    val image = Option(post.coverImage.get).toSeq.flatMap(value => Seq(
-      HeadEntry.property("og:image", origin + value.source),
-      HeadEntry.property("og:image:alt", Option(post.coverAlt.get).getOrElse(""))))
+    val image = Option(post.coverImage.get).toSeq.flatMap(value =>
+      Seq(
+        HeadEntry.property("og:image", origin + value.source),
+        HeadEntry.property("og:image:alt", Option(post.coverAlt.get).getOrElse(""))
+      )
+    )
     social(title, description, canonical, "article") ++ Seq(
-      HeadEntry.link("canonical", canonical), HeadEntry.meta("robots", "index, follow"),
-      HeadEntry.property("og:locale", if (locale == "de") "de_DE" else "en_US"), feed(origin, locale)) ++
-      post.publishedAt.get.toSeq.map(value => HeadEntry.property("article:published_time", value)) ++ alternates ++ image
+      HeadEntry.link("canonical", canonical),
+      HeadEntry.meta("robots", "index, follow"),
+      HeadEntry.property("og:locale", if (locale == "de") "de_DE" else "en_US"),
+      feed(origin, locale)
+    ) ++
+      post.publishedAt.get.toSeq.map(value => HeadEntry.property("article:published_time", value)) ++ alternates ++
+      image
   }
 
-  def list(origin: String, locale: String, search: PostSearch, emptyPage: Boolean,
-      title: String, description: String): Seq[HeadEntry] = {
+  def list(
+    origin: String,
+    locale: String,
+    search: PostSearch,
+    emptyPage: Boolean,
+    title: String,
+    description: String
+  ): Seq[HeadEntry] = {
     val query = search.queryString()
     val canonical = s"$origin/$locale" + (if (query.isEmpty) "" else s"?$query")
     val defaultListing = !search.filtered && search.sort == "newest" && search.limit == 20
     val indexable = defaultListing && !emptyPage
     social(title, description, canonical, "website") ++ Seq(
-      HeadEntry.link("canonical", canonical), HeadEntry.meta("robots", if (indexable) "index, follow" else "noindex, follow"),
-      feed(origin, locale)) ++ (if (query.isEmpty) Seq(
-      HeadEntry.alternate("en", s"$origin/en"), HeadEntry.alternate("de", s"$origin/de"),
-      HeadEntry.alternate("x-default", s"$origin/en")) else Seq.empty)
+      HeadEntry.link("canonical", canonical),
+      HeadEntry.meta("robots", if (indexable) "index, follow" else "noindex, follow"),
+      feed(origin, locale)
+    ) ++
+      (if (query.isEmpty) Seq(
+         HeadEntry.alternate("en", s"$origin/en"),
+         HeadEntry.alternate("de", s"$origin/de"),
+         HeadEntry.alternate("x-default", s"$origin/en")
+       )
+       else Seq.empty)
   }
 
   def bindList(search: PostSearch, emptyPage: Boolean)(using owner: AbstractComponent): Unit =
     current.foreach { head =>
       val runtime = I18nRuntime.require
-      head.bind(list(head.origin, runtime.locale.get.code, search, emptyPage,
+      head.bind(list(
+        head.origin,
+        runtime.locale.get.code,
+        search,
+        emptyPage,
         runtime.resolveNow(i18n"Latest posts"),
-        runtime.resolveNow(i18n"Notes on Scala, the web, and the decisions in between."))*)
+        runtime.resolveNow(i18n"Notes on Scala, the web, and the decisions in between.")
+      )*)
     }
 }

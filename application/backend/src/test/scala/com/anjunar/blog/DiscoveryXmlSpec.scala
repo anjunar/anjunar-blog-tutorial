@@ -6,14 +6,14 @@ import org.xml.sax.InputSource
 
 import java.io.StringReader
 import java.time.Instant
-import java.util.UUID
+import java.util
 import javax.xml.parsers.DocumentBuilderFactory
 
 class DiscoveryXmlSpec extends AnyFunSuite {
   private val origin = "https://journal.example"
   private val published = Instant.parse("2026-09-01T12:00:00Z")
   private val changed = Instant.parse("2026-09-02T12:00:00Z")
-  private val id = UUID.fromString("00000000-0000-0000-0000-000000000024")
+  private val id = util.UUID.fromString("00000000-0000-0000-0000-000000000024")
   private def parse(xml: String): Document = {
     val factory = DocumentBuilderFactory.newInstance()
     factory.setNamespaceAware(true)
@@ -21,8 +21,10 @@ class DiscoveryXmlSpec extends AnyFunSuite {
   }
 
   test("sitemap contains canonical pages and omits unknown modification times") {
-    val pages = Seq(PublishedPage(id, "example-post", "en", "Example", None, published, None),
-      PublishedPage(UUID.randomUUID(), "example-post", "de", "Beispiel", None, published, Some(changed)))
+    val pages = Seq(
+      PublishedPage(id, "example-post", "en", "Example", None, published, None),
+      PublishedPage(util.UUID.randomUUID(), "example-post", "de", "Beispiel", None, published, Some(changed))
+    )
     val doc = parse(DiscoveryXml.sitemap(origin, pages))
     assert(doc.getDocumentElement.getNamespaceURI == "http://www.sitemaps.org/schemas/sitemap/0.9")
     val urls = doc.getElementsByTagName("loc")
@@ -64,8 +66,17 @@ class DiscoveryXmlSpec extends AnyFunSuite {
   test("the public origin is configured, normalized, and restricted to a complete HTTP origin") {
     assert(PublicSite.origin(Map.empty, 8080) == "http://127.0.0.1:8080")
     assert(PublicSite.origin(Map("BLOG_PUBLIC_ORIGIN" -> "https://Journal.Example:443/"), 8080) == origin)
-    Seq("http://example.com", "https://user@example.com", "https://example.com/blog",
-      "https://example.com?host=other", "https://example.com#fragment", "//example.com", "https://example.com:0")
-      .foreach(value => intercept[IllegalArgumentException](PublicSite.origin(Map("BLOG_PUBLIC_ORIGIN" -> value), 8080)))
+    Seq(
+      "http://example.com",
+      "https://user@example.com",
+      "https://example.com/blog",
+      "https://example.com?host=other",
+      "https://example.com#fragment",
+      "//example.com",
+      "https://example.com:0"
+    )
+      .foreach(value =>
+        intercept[IllegalArgumentException](PublicSite.origin(Map("BLOG_PUBLIC_ORIGIN" -> value), 8080))
+      )
   }
 }

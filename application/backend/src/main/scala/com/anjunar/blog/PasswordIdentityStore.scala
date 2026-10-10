@@ -7,7 +7,7 @@ import jakarta.security.enterprise.credential.{Credential, UsernamePasswordCrede
 import jakarta.security.enterprise.identitystore.{CredentialValidationResult, IdentityStore}
 
 import java.time.Instant
-import java.util.Set
+import java.util
 import scala.compiletime.uninitialized
 
 @ApplicationScoped
@@ -23,7 +23,9 @@ class PasswordIdentityStore extends IdentityStore {
       }
       found.filter(account => valid && !account.locked).map { account =>
         new CredentialValidationResult(
-          SessionPrincipal(account.id, account.authenticationVersion, Instant.now()), Set.of(account.role))
+          SessionPrincipal(account.id, account.authenticationVersion, Instant.now()),
+          util.Set.of(account.role)
+        )
       }.getOrElse(CredentialValidationResult.INVALID_RESULT)
     case _ => CredentialValidationResult.NOT_VALIDATED_RESULT
   }

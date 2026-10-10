@@ -6,8 +6,10 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.scalajs.js
 import scala.util.{Failure, Success, Try}
 
-final class PostEditorActions(initial: BlogPostData,
-    send: (ApiLink, js.Dynamic) => Future[BlogPostData])(using ExecutionContext) {
+final class PostEditorActions(
+  initial: BlogPostData,
+  send: (ApiLink, js.Dynamic) => Future[BlogPostData]
+)(using ExecutionContext) {
   val post: BlogPost = initial.data
   val links: Property[Seq[ApiLink]] = Property(initial.links)
   val busy: Property[Boolean] = Property(false)
@@ -24,8 +26,10 @@ final class PostEditorActions(initial: BlogPostData,
     if (notice.get == Saved || notice.get == NewerEdits) notice.set(Idle)
   }
   private val subscriptions = post.editableFields.map(_.observeWithoutInitial(_ => changed())) ++ Seq(
-    post.author.observeWithoutInitial(_ => changed()), post.tags.observeWithoutInitial(_ => changed()),
-    post.coverImage.observeWithoutInitial(_ => changed()))
+    post.author.observeWithoutInitial(_ => changed()),
+    post.tags.observeWithoutInitial(_ => changed()),
+    post.coverImage.observeWithoutInitial(_ => changed())
+  )
 
   def save(onSaved: () => Unit): Unit = {
     if (disposed || busy.get || blocked.get) return
@@ -53,21 +57,26 @@ final class PostEditorActions(initial: BlogPostData,
               val http = error match { case value: HttpFailure => Some(value); case _ => None }
               val fields = http.flatMap(_.problem).toSeq.flatMap(value => Option(value.errors).getOrElse(Seq.empty))
                 .filter(value => value != null && value.path != null && value.message != null)
-              val applicable = fields.filter(value => value.path.size == 1 &&
-                submitted.value(value.path.head).nonEmpty &&
-                submitted.value(value.path.head) == post.snapshot.value(value.path.head))
+              val applicable = fields.filter(value =>
+                value.path.size == 1 &&
+                  submitted.value(value.path.head).nonEmpty &&
+                  submitted.value(value.path.head) == post.snapshot.value(value.path.head)
+              )
               errors.set(applicable)
-              generalError.set(fields.filter(value => value.path.size != 1 ||
-                submitted.value(value.path.head).isEmpty).map(_.message).mkString(" "))
+              generalError.set(fields.filter(value =>
+                value.path.size != 1 ||
+                  submitted.value(value.path.head).isEmpty
+              ).map(_.message).mkString(" "))
               val status = http.map(_.status).getOrElse(0)
               val fieldConflict = status == 409 && fields.exists(_.path == Seq("slug"))
               val retryable = status == 400 || fieldConflict
               blocked.set(!retryable)
-              notice.set(if (retryable) Invalid else status match {
+              notice.set(if (retryable) Invalid
+              else status match {
                 case 409 => Conflict
                 case 401 => SignedOut
                 case 403 => Forbidden
-                case _ => Unconfirmed
+                case _   => Unconfirmed
               })
               busy.set(false)
           }

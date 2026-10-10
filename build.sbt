@@ -94,7 +94,8 @@ frontendAssets := Def.uncached {
   val ssr = (frontend / Compile / fastLinkJS / scalaJSLinkerOutputDirectory).value
   val destination = (LocalRootProject / baseDirectory).value / "target" / "frontend"
   IO.createDirectory(destination)
-  val iconFont = (LocalRootProject / baseDirectory).value / "node_modules" / "@fontsource" / "material-icons" / "files" / "material-icons-latin-400-normal.woff2"
+  val iconFont = (LocalRootProject / baseDirectory).value / "node_modules" / "@fontsource" / "material-icons" /
+    "files" / "material-icons-latin-400-normal.woff2"
   require(iconFont.isFile, "Run npm ci before building frontend assets.")
   IO.copyFile(iconFont, destination / "material-icons.woff2")
   IO.copyFile(iconFont.getParentFile.getParentFile / "LICENSE", destination / "material-icons-LICENSE.txt")

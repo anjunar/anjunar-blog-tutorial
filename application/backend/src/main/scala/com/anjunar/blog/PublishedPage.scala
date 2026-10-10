@@ -7,12 +7,19 @@ import jakarta.persistence.criteria.JoinType
 import jakarta.ws.rs.ServiceUnavailableException
 
 import java.time.Instant
-import java.util.UUID
+import java.util
 import scala.compiletime.uninitialized
 import scala.jdk.CollectionConverters.*
 
-final case class PublishedPage(id: UUID, slug: String, locale: String, title: String,
-    summary: Option[String], published: Instant, changed: Option[Instant]) {
+final case class PublishedPage(
+  id: util.UUID,
+  slug: String,
+  locale: String,
+  title: String,
+  summary: Option[String],
+  published: Instant,
+  changed: Option[Instant]
+) {
   def path: String = s"/$locale/posts/$slug"
   def updated: Instant = changed.filter(_.isAfter(published)).getOrElse(published)
 }

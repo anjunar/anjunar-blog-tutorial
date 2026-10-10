@@ -15,7 +15,8 @@ class PostEditorSpec extends AnyFunSuite {
   private def post(version: Int = 0): BlogPost =
     JsonMapper.deserialize[BlogPost](js.JSON.parse(
       s"""{"id":"$id","version":$version,"slug":"first-post","title":"First title",
-         |"content":"Original content","summary":"Original summary","status":"DRAFT"}""".stripMargin))
+         |"content":"Original content","summary":"Original summary","status":"DRAFT"}""".stripMargin
+    ))
 
   test("mapped partial writes preserve version zero, explicit null and empty content") {
     val value = post()
@@ -63,9 +64,12 @@ class PostEditorSpec extends AnyFunSuite {
     var calls = 0
     var body: js.Dynamic = null
     val value = post()
-    val actions = new PostEditorActions(new BlogPostData(value, Seq(link())), (_, request) => {
-      calls += 1; body = request; pending.future
-    })
+    val actions = new PostEditorActions(
+      new BlogPostData(value, Seq(link())),
+      (_, request) => {
+        calls += 1; body = request; pending.future
+      }
+    )
     value.title.set("Sent title")
     actions.save(() => ())
     value.title.set("Newer title")
@@ -85,9 +89,13 @@ class PostEditorSpec extends AnyFunSuite {
     val actions = new PostEditorActions(new BlogPostData(value, Seq(link())), (_, _) => pending.future)
     actions.save(() => ())
     value.title.set("Corrected title")
-    val problem = new ProblemDetails(status = 400, errors = Seq(
-      new FieldError(Seq("title"), "Old title rejected"),
-      new FieldError(Seq("summary"), "Summary rejected")))
+    val problem = new ProblemDetails(
+      status = 400,
+      errors = Seq(
+        new FieldError(Seq("title"), "Old title rejected"),
+        new FieldError(Seq("summary"), "Summary rejected")
+      )
+    )
     pending.failure(new HttpFailure(400, Some(problem)))
     assert(actions.errors.get.map(_.path) == Seq(Seq("summary")))
     assert(!actions.blocked.get && actions.notice.get == SaveNotice.Invalid)
@@ -107,9 +115,12 @@ class PostEditorSpec extends AnyFunSuite {
     val pending = Promise[BlogPostData]()
     val value = post()
     var calls = 0
-    val actions = new PostEditorActions(new BlogPostData(value, Seq(link())), (_, _) => {
-      calls += 1; pending.future
-    })
+    val actions = new PostEditorActions(
+      new BlogPostData(value, Seq(link())),
+      (_, _) => {
+        calls += 1; pending.future
+      }
+    )
     value.title.set("Local draft")
     actions.save(() => ())
     pending.failure(new HttpFailure(409))
@@ -136,10 +147,13 @@ class PostEditorSpec extends AnyFunSuite {
     var relations = Seq.empty[String]
     val value = new BlogPost()
     value.title.set("First title"); value.slug.set("first-post"); value.content.set("Original content")
-    val actions = new PostEditorActions(new BlogPostData(value, Seq(link("create"))), (action, _) => {
-      relations :+= action.rel
-      if (relations.size == 1) first.future else second.future
-    })
+    val actions = new PostEditorActions(
+      new BlogPostData(value, Seq(link("create"))),
+      (action, _) => {
+        relations :+= action.rel
+        if (relations.size == 1) first.future else second.future
+      }
+    )
     actions.save(() => ())
     value.title.set("Newer creation text")
     first.success(new BlogPostData(post(), Seq(link())))

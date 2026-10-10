@@ -9,7 +9,7 @@ import jakarta.security.enterprise.identitystore.{CredentialValidationResult, Id
 import jakarta.servlet.http.{HttpServletRequest, HttpServletResponse}
 
 import java.lang
-import java.util.Set
+import java.util
 import scala.compiletime.uninitialized
 
 @ApplicationScoped
@@ -17,8 +17,11 @@ class SoteriaAuthenticationMechanism extends HttpAuthenticationMechanism {
   @Inject var stores: IdentityStoreHandler = uninitialized
   @Inject var identity: SessionIdentity = uninitialized
 
-  override def validateRequest(request: HttpServletRequest, response: HttpServletResponse,
-      context: HttpMessageContext): AuthenticationStatus = {
+  override def validateRequest(
+    request: HttpServletRequest,
+    response: HttpServletResponse,
+    context: HttpMessageContext
+  ): AuthenticationStatus = {
     // Undertow can call before JAX-RS/CDI request work. Database authentication
     // starts explicitly after TransactionBoundary has opened the persistence context.
     if (request.getAttribute(SoteriaIntegration.requestKey) != lang.Boolean.TRUE) return context.doNothing()
@@ -32,15 +35,19 @@ class SoteriaAuthenticationMechanism extends HttpAuthenticationMechanism {
         }
       case null =>
         identity.resolve(request) match {
-          case Some(principal) => context.notifyContainerAboutLogin(principal, Set.of(identity.requireAccount().role))
+          case Some(principal) =>
+            context.notifyContainerAboutLogin(principal, util.Set.of(identity.requireAccount().role))
           case None => context.doNothing()
         }
       case _ => AuthenticationStatus.SEND_FAILURE
     }
   }
 
-  override def cleanSubject(request: HttpServletRequest, response: HttpServletResponse,
-      context: HttpMessageContext): Unit = {
+  override def cleanSubject(
+    request: HttpServletRequest,
+    response: HttpServletResponse,
+    context: HttpMessageContext
+  ): Unit = {
     identity.clear(request)
     context.cleanClientSubject()
   }

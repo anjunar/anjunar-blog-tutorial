@@ -10,7 +10,7 @@ import jakarta.validation.Validation
 import jakarta.ws.rs.{GET, Path, Produces}
 import jakarta.ws.rs.core.MediaType
 
-import java.util.UUID
+import java.util
 import scala.util.Using
 
 // Test-only: exercise mapper writes under real anonymous, reader and admin requests.
@@ -27,13 +27,21 @@ class PermissionProbeResource {
     post.title = "Original title"
     post.content = "Original body"
     val input = JsonParser.parse(
-      """{"title":"Changed title","version":99,"status":"PUBLISHED","publishedAt":"2026-09-27T10:00:00Z"}""")
+      """{"title":"Changed title","version":99,"status":"PUBLISHED","publishedAt":"2026-09-27T10:00:00Z"}"""
+    )
     val loader = new EntityLoader {
-      override def load(id: UUID, clazz: Class[?]): Any = throw new AssertionError("No references")
+      override def load(id: util.UUID, clazz: Class[?]): Any = throw new AssertionError("No references")
     }
     Using.resource(Validation.buildDefaultValidatorFactory()) { factory =>
-      JsonMapper.deserialize(input, post, TypeResolver.resolve(classOf[BlogPost]), null, loader,
-        [T] => (clazz: Class[T]) => RuntimeContext.bean(clazz), factory.getValidator)
+      JsonMapper.deserialize(
+        input,
+        post,
+        TypeResolver.resolve(classOf[BlogPost]),
+        null,
+        loader,
+        [T] => (clazz: Class[T]) => RuntimeContext.bean(clazz),
+        factory.getValidator
+      )
     }
     s"${post.title}|${post.version}|${post.status}|${post.publishedAt}"
   }

@@ -10,7 +10,7 @@ import java.net.{CookieManager, CookiePolicy, InetAddress, ServerSocket, URI}
 import java.net.http.{HttpClient, HttpRequest, HttpResponse}
 import java.sql.DriverManager
 import java.time.Duration
-import java.util.UUID
+import java.util
 import java.util.concurrent.{Callable, Executors}
 import scala.collection.mutable
 import scala.jdk.CollectionConverters.*
@@ -19,7 +19,7 @@ import scala.util.Using
 class PostChangesSpec extends AnyFunSuite with BeforeAndAfterAll {
   private var server: UndertowCdiEmbeddedServer = null
   private var port = 0
-  private val owned = mutable.Buffer.empty[UUID]
+  private val owned = mutable.Buffer.empty[util.UUID]
   private val clients = mutable.Buffer.empty[HttpClient]
   private val password = "a long tutorial passphrase"
   private lazy val hash = PasswordHash.create(password)
@@ -31,7 +31,8 @@ class PostChangesSpec extends AnyFunSuite with BeforeAndAfterAll {
 
   private def freePort(): Int = {
     val socket = new ServerSocket(0, 1, InetAddress.getByName("127.0.0.1"))
-    try socket.getLocalPort finally socket.close()
+    try socket.getLocalPort
+    finally socket.close()
   }
 
   override protected def beforeAll(): Unit = {
@@ -58,13 +59,14 @@ class PostChangesSpec extends AnyFunSuite with BeforeAndAfterAll {
   }
 
   private def account(locked: Boolean = false): String = {
-    val id = UUID.randomUUID()
+    val id = util.UUID.randomUUID()
     val email = s"auth-$id@example.com"
     owned += id
     Using.resource(connection()) { connection =>
       Using.resource(connection.prepareStatement(
         """insert into public.blog_account (id, version, email, role, password_hash, authentication_version, locked)
-          |values (?, 0, ?, 'ADMIN', ?, 0, ?)""".stripMargin)) { query =>
+          |values (?, 0, ?, 'ADMIN', ?, 0, ?)""".stripMargin
+      )) { query =>
         query.setObject(1, id)
         query.setString(2, email)
         query.setString(3, hash)
@@ -79,9 +81,15 @@ class PostChangesSpec extends AnyFunSuite with BeforeAndAfterAll {
     val cookies = new CookieManager(null, CookiePolicy.ACCEPT_ALL)
     val client = HttpClient.newBuilder().cookieHandler(cookies).connectTimeout(Duration.ofSeconds(5)).build()
     clients += client
-    def cookie: String = cookies.getCookieStore.getCookies.asScala.find(_.getName == SecurityConfig.cookieName).get.getValue
-    def send(path: String, method: String = "GET", body: String = "", csrf: String = "",
-        extra: Map[String, String] = Map.empty): HttpResponse[String] = {
+    def cookie: String =
+      cookies.getCookieStore.getCookies.asScala.find(_.getName == SecurityConfig.cookieName).get.getValue
+    def send(
+      path: String,
+      method: String = "GET",
+      body: String = "",
+      csrf: String = "",
+      extra: Map[String, String] = Map.empty
+    ): HttpResponse[String] = {
       val builder = HttpRequest.newBuilder(URI.create(s"http://127.0.0.1:$port/service/$path"))
         .timeout(Duration.ofSeconds(20)).header("Accept", "application/json")
       if (csrf.nonEmpty) builder.header("X-CSRF-Token", csrf)
@@ -92,8 +100,12 @@ class PostChangesSpec extends AnyFunSuite with BeforeAndAfterAll {
     }
     def session(): JsonObject = json(send("auth/session"))
     def login(email: String, secret: String = password): HttpResponse[String] =
-      send("auth/login", "POST", new JsonObject().put("email", email).put("password", secret).encode(),
-        session().getString("csrfToken"))
+      send(
+        "auth/login",
+        "POST",
+        new JsonObject().put("email", email).put("password", secret).encode(),
+        session().getString("csrfToken")
+      )
   }
 
   private def json(response: HttpResponse[String]): JsonObject = {
@@ -101,14 +113,14 @@ class PostChangesSpec extends AnyFunSuite with BeforeAndAfterAll {
     JsonParser.parse(response.body()).asInstanceOf[JsonObject]
   }
 
-
-  private val posts = mutable.Buffer.empty[UUID]
-  private def draft(content: String = "A private body"): UUID = {
-    val id = UUID.randomUUID()
+  private val posts = mutable.Buffer.empty[util.UUID]
+  private def draft(content: String = "A private body"): util.UUID = {
+    val id = util.UUID.randomUUID()
     posts += id
     Using.resource(connection()) { c =>
       Using.resource(c.prepareStatement(
-        "insert into public.blog_post (id, version, slug, title, content, status) values (?, 0, ?, ?, ?, 'DRAFT')")) { q =>
+        "insert into public.blog_post (id, version, slug, title, content, status) values (?, 0, ?, ?, ?, 'DRAFT')"
+      )) { q =>
         q.setObject(1, id); q.setString(2, s"permission-$id")
         q.setString(3, s"Permission test $id"); q.setString(4, content); q.executeUpdate()
       }
@@ -121,7 +133,7 @@ class PostChangesSpec extends AnyFunSuite with BeforeAndAfterAll {
         q.setString(1, role); q.setString(2, email); q.executeUpdate()
       }
     }
-  private def path(id: UUID): String = s"editorial/posts/$id"
+  private def path(id: util.UUID): String = s"editorial/posts/$id"
   private def relations(value: JsonObject): Set[String] =
     Option(value.value.get("$links").asInstanceOf[JsonArray]).toSeq.flatMap(_.value.asScala)
       .map(_.asInstanceOf[JsonObject].getString("rel")).toSet
@@ -130,20 +142,20 @@ class PostChangesSpec extends AnyFunSuite with BeforeAndAfterAll {
     json(browser.login(account()))
     browser
   }
-  private def action(browser: Browser, id: UUID, name: String, extra: Map[String, String] = Map.empty) =
+  private def action(browser: Browser, id: util.UUID, name: String, extra: Map[String, String] = Map.empty) =
     browser.send(s"${path(id)}/$name", "POST", csrf = browser.session().getString("csrfToken"), extra = extra)
 
-
-  private def input(slug: String = s"edit-${UUID.randomUUID()}"): JsonObject =
+  private def input(slug: String = s"edit-${util.UUID.randomUUID()}"): JsonObject =
     new JsonObject().put("slug", slug).put("title", "A carefully prepared post").put("content", "Original body")
 
   private def create(browser: Browser, body: JsonObject): HttpResponse[String] = {
     val response = browser.send("editorial/posts", "POST", body.encode(), browser.session().getString("csrfToken"))
-    if (response.statusCode() == 201) posts += UUID.fromString(json(response).getJsonObject("data").getString("id"))
+    if (response.statusCode() == 201) posts +=
+      util.UUID.fromString(json(response).getJsonObject("data").getString("id"))
     response
   }
 
-  private def patch(browser: Browser, id: UUID, body: String, extra: Map[String, String] = Map.empty) =
+  private def patch(browser: Browser, id: util.UUID, body: String, extra: Map[String, String] = Map.empty) =
     browser.send(path(id), "PATCH", body, browser.session().getString("csrfToken"), extra)
 
   private def fields(problem: JsonObject): Set[String] =
@@ -195,7 +207,7 @@ class PostChangesSpec extends AnyFunSuite with BeforeAndAfterAll {
 
   test("new posts validate omitted required values and retain the legal empty-draft default") {
     val browser = admin()
-    val missing = new JsonObject().put("slug", s"missing-${UUID.randomUUID()}")
+    val missing = new JsonObject().put("slug", s"missing-${util.UUID.randomUUID()}")
     assert(fields(problem(create(browser, missing), 400)).contains("title"))
     val short = input().put("title", "x")
     assert(fields(problem(create(browser, short), 400)).contains("title"))
@@ -210,13 +222,25 @@ class PostChangesSpec extends AnyFunSuite with BeforeAndAfterAll {
   test("version is a required nonnegative JSON integer; identity cannot be reassigned") {
     val browser = admin()
     val id = draft()
-    Seq("{}", """{"version":null}""", """{"version":"0"}""", """{"version":-1}""",
-      """{"version":0.5}""", """{"version":9223372036854775808}""").foreach { body =>
+    Seq(
+      "{}",
+      """{"version":null}""",
+      """{"version":"0"}""",
+      """{"version":-1}""",
+      """{"version":0.5}""",
+      """{"version":9223372036854775808}"""
+    ).foreach { body =>
       assert(fields(problem(patch(browser, id, body), 400)).contains("version"))
     }
-    assert(fields(problem(patch(browser, id,
-      s"""{"version":0,"id":"${UUID.randomUUID()}"}"""), 400)).contains("id"))
-    assert(fields(problem(create(browser, input().put("id", UUID.randomUUID().toString)), 400)).contains("id"))
+    assert(fields(problem(
+      patch(
+        browser,
+        id,
+        s"""{"version":0,"id":"${util.UUID.randomUUID()}"}"""
+      ),
+      400
+    )).contains("id"))
+    assert(fields(problem(create(browser, input().put("id", util.UUID.randomUUID().toString)), 400)).contains("id"))
     assert(fields(problem(create(browser, input().put("version", Int.box(99))), 400)).contains("version"))
     val valid = json(patch(browser, id, s"""{"version":0,"id":"$id","title":"Matching identity"}"""))
     assert(valid.getJsonObject("data").getString("id") == id.toString)
@@ -230,7 +254,7 @@ class PostChangesSpec extends AnyFunSuite with BeforeAndAfterAll {
     assert(stale.getString("type") == Problem.conflict)
     val saved = json(browser.send(path(id))).getJsonObject("data")
     assert(saved.getString("title") == "First editor saved" && saved.value.get("version").value == "1")
-    problem(patch(browser, UUID.randomUUID(), """{"version":0}"""), 404)
+    problem(patch(browser, util.UUID.randomUUID(), """{"version":0}"""), 404)
   }
 
   test("two simultaneous edits of the same version commit only one update") {
@@ -242,8 +266,12 @@ class PostChangesSpec extends AnyFunSuite with BeforeAndAfterAll {
     try {
       val pending = tokens.zipWithIndex.map { case ((browser, token), index) =>
         executor.submit(new Callable[Int] {
-          override def call(): Int = browser.send(path(id), "PATCH",
-            s"""{"version":0,"title":"Concurrent editor $index"}""", token).statusCode()
+          override def call(): Int = browser.send(
+            path(id),
+            "PATCH",
+            s"""{"version":0,"title":"Concurrent editor $index"}""",
+            token
+          ).statusCode()
         })
       }
       assert(pending.map(_.get()).sorted == Seq(200, 409))
@@ -277,8 +305,11 @@ class PostChangesSpec extends AnyFunSuite with BeforeAndAfterAll {
   test("read-only fields stay unchanged while editable fields use the mapper rules") {
     val browser = admin()
     val id = draft()
-    val result = json(patch(browser, id,
-      """{"version":0,"title":"Allowed title","status":"PUBLISHED","publishedAt":"2026-09-27T10:00:00Z"}"""))
+    val result = json(patch(
+      browser,
+      id,
+      """{"version":0,"title":"Allowed title","status":"PUBLISHED","publishedAt":"2026-09-27T10:00:00Z"}"""
+    ))
       .getJsonObject("data")
     assert(result.getString("title") == "Allowed title")
     assert(result.getString("status") == "DRAFT" && !result.value.containsKey("publishedAt"))
@@ -291,7 +322,7 @@ class PostChangesSpec extends AnyFunSuite with BeforeAndAfterAll {
     val second = json(create(browser, input())).getJsonObject("data")
     val slug = first.getString("slug")
     assert(fields(problem(create(browser, input(slug)), 409)).contains("slug"))
-    val id = UUID.fromString(second.getString("id"))
+    val id = util.UUID.fromString(second.getString("id"))
     val command = new JsonObject().put("version", Int.box(0)).put("slug", slug).put("title", "Must roll back")
     assert(fields(problem(patch(browser, id, command.encode()), 409)).contains("slug"))
     val saved = json(browser.send(path(id))).getJsonObject("data")
@@ -313,7 +344,7 @@ class PostChangesSpec extends AnyFunSuite with BeforeAndAfterAll {
       }
       val responses = pending.map(_.get())
       responses.filter(_.statusCode() == 201).foreach { response =>
-        posts += UUID.fromString(json(response).getJsonObject("data").getString("id"))
+        posts += util.UUID.fromString(json(response).getJsonObject("data").getString("id"))
       }
       assert(responses.map(_.statusCode()).sorted == Seq(201, 409))
       problem(responses.find(_.statusCode() == 409).get, 409)
@@ -341,9 +372,17 @@ class PostChangesSpec extends AnyFunSuite with BeforeAndAfterAll {
   test("malformed, duplicate, oversized and unknown input fails without mutation") {
     val browser = admin()
     val id = draft()
-    Seq("[]", "null", "{", """{"version":0}{}""", """{"version":0,"version":1}""",
-      """{"version":0,"title":{"$ref":"another-post"}}""", """{"version":0,"title":42}""",
-      """{"version":0,"@type":"Account"}""", """{"version":0,"author":{"id":"missing"}}""").foreach { body =>
+    Seq(
+      "[]",
+      "null",
+      "{",
+      """{"version":0}{}""",
+      """{"version":0,"version":1}""",
+      """{"version":0,"title":{"$ref":"another-post"}}""",
+      """{"version":0,"title":42}""",
+      """{"version":0,"@type":"Account"}""",
+      """{"version":0,"author":{"id":"missing"}}"""
+    ).foreach { body =>
       problem(patch(browser, id, body), 400)
     }
     problem(patch(browser, id, " " * (RequestJson.maxBytes + 1)), 413)
@@ -356,8 +395,12 @@ class PostChangesSpec extends AnyFunSuite with BeforeAndAfterAll {
     for (failure <- Seq("writer", "commit")) {
       val id = draft()
       val initial = json(browser.send(path(id))).getJsonObject("data")
-      val response = patch(browser, id, """{"version":0,"title":"Must not survive"}""",
-        Map("X-Test-Auth-Failure" -> failure))
+      val response = patch(
+        browser,
+        id,
+        """{"version":0,"title":"Must not survive"}""",
+        Map("X-Test-Auth-Failure" -> failure)
+      )
       val error = problem(response, 500)
       assert(error.getString("errorId") != null)
       val saved = json(browser.send(path(id))).getJsonObject("data")
@@ -369,13 +412,22 @@ class PostChangesSpec extends AnyFunSuite with BeforeAndAfterAll {
     val browser = admin()
     val id = draft()
     val original = json(browser.send(path(id))).getJsonObject("data").getString("title")
-    val denied = browser.send(s"_test/changes/$id", "PATCH",
-      """{"version":0,"title":"Must not be assigned before authorization"}""", browser.session().getString("csrfToken"))
+    val denied = browser.send(
+      s"_test/changes/$id",
+      "PATCH",
+      """{"version":0,"title":"Must not be assigned before authorization"}""",
+      browser.session().getString("csrfToken")
+    )
     assert(denied.statusCode() == 403)
     assert(denied.headers().firstValue("X-Test-Original-Title").orElse("") == original)
     assert(json(browser.send(path(id))).getJsonObject("data").value.get("version").value == "0")
-    val single = browser.send(s"_test/changes/$id/apply", "PATCH",
-      """{"version":0,"title":"Apply only once"}""", browser.session().getString("csrfToken"), Map("Accept" -> "text/plain"))
+    val single = browser.send(
+      s"_test/changes/$id/apply",
+      "PATCH",
+      """{"version":0,"title":"Apply only once"}""",
+      browser.session().getString("csrfToken"),
+      Map("Accept" -> "text/plain")
+    )
     assert(single.statusCode() == 200 && single.body() == "single-use")
   }
 

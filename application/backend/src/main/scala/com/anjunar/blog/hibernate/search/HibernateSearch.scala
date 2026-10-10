@@ -20,23 +20,43 @@ class HibernateSearch {
   def searchContext[S <: AbstractSearch](search: S): HibernateSearchContext =
     new HibernateSearchContext {
       override def apply[E](
-          builder: HibernateCriteriaBuilder, query: JpaCriteriaQuery[?], root: JpaRoot[E]
+        builder: HibernateCriteriaBuilder,
+        query: JpaCriteriaQuery[?],
+        root: JpaRoot[E]
       ): HibernateSearchContextResult =
-        SearchBeanReader.read(search, builder, root, query,
-          predicateProviders.asInstanceOf[Instance[PredicateProvider[Any, E]]])
+        SearchBeanReader.read(
+          search,
+          builder,
+          root,
+          query,
+          predicateProviders.asInstanceOf[Instance[PredicateProvider[Any, E]]]
+        )
 
       override def sort[E](
-          builder: HibernateCriteriaBuilder, query: JpaCriteriaQuery[?], root: JpaRoot[E],
-          predicates: util.List[Predicate], selection: util.List[Expression[?]]
+        builder: HibernateCriteriaBuilder,
+        query: JpaCriteriaQuery[?],
+        root: JpaRoot[E],
+        predicates: util.List[Predicate],
+        selection: util.List[Expression[?]]
       ): util.List[Order] =
-        SearchBeanReader.order(search, builder, root, query, predicates, selection,
-          sortProviders.asInstanceOf[Instance[SortProvider[Any, E]]])
+        SearchBeanReader.order(
+          search,
+          builder,
+          root,
+          query,
+          predicates,
+          selection,
+          sortProviders.asInstanceOf[Instance[SortProvider[Any, E]]]
+        )
     }
 
   def entities[E, P](
-      index: Int, limit: Int, entityClass: Class[E], projection: Class[P],
-      context: HibernateSearchContext,
-      select: (JpaCriteriaQuery[P], JpaRoot[E], util.List[Expression[?]], HibernateCriteriaBuilder) => JpaCriteriaQuery[P]
+    index: Int,
+    limit: Int,
+    entityClass: Class[E],
+    projection: Class[P],
+    context: HibernateSearchContext,
+    select: (JpaCriteriaQuery[P], JpaRoot[E], util.List[Expression[?]], HibernateCriteriaBuilder) => JpaCriteriaQuery[P]
   ): util.List[P] = {
     val start = QuerySurface.firstResult(index)
     val size = QuerySurface.maxResults(limit)

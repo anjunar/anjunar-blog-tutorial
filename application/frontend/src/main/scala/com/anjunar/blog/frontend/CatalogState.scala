@@ -27,7 +27,7 @@ final class CatalogState(initial: CatalogData, service: CatalogService)(using Ex
           page.rows.filterNot(row => authors.exists(_.data.id.get == row.data.id.get)).foreach(authors += _)
           nextAuthors.set(page.links.find(_.rel == "next")); busy.set(false)
         case Failure(_) if !disposed => failed.set(true); busy.set(false)
-        case _ => ()
+        case _                       => ()
       }
     }
   }
@@ -40,14 +40,14 @@ final class CatalogState(initial: CatalogData, service: CatalogService)(using Ex
           page.rows.filterNot(row => tags.exists(_.data.id.get == row.data.id.get)).foreach(tags += _)
           nextTags.set(page.links.find(_.rel == "next")); busy.set(false)
         case Failure(_) if !disposed => failed.set(true); busy.set(false)
-        case _ => ()
+        case _                       => ()
       }
     }
   }
 
   def recordAuthor(value: AuthorData): Unit = {
     authors.indexWhere(_.data.id.get == value.data.id.get) match {
-      case -1 => authors += value
+      case -1    => authors += value
       case index => authors.update(index, value)
     }
     saved.set(true)
@@ -55,7 +55,7 @@ final class CatalogState(initial: CatalogData, service: CatalogService)(using Ex
 
   def recordTag(value: BlogTagData): Unit = {
     tags.indexWhere(_.data.id.get == value.data.id.get) match {
-      case -1 => tags += value
+      case -1    => tags += value
       case index => tags.update(index, value)
     }
     saved.set(true)
@@ -63,4 +63,3 @@ final class CatalogState(initial: CatalogData, service: CatalogService)(using Ex
 
   def dispose(): Unit = { disposed = true; abort.abort() }
 }
-

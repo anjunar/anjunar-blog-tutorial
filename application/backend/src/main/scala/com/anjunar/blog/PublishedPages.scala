@@ -7,10 +7,9 @@ import jakarta.persistence.criteria.JoinType
 import jakarta.ws.rs.ServiceUnavailableException
 
 import java.time.Instant
-import java.util.UUID
+import java.util
 import scala.compiletime.uninitialized
 import scala.jdk.CollectionConverters.*
-
 
 @RequestScoped
 class PublishedPages {
@@ -24,34 +23,54 @@ class PublishedPages {
     val translation = post.joinSet[BlogPost, BlogPostTranslation](BlogPost.schema.translations.name, JoinType.LEFT)
     translation.on(
       builder.equal(translation.get(BlogPostTranslation.schema.locale), "de"),
-      builder.equal(translation.get(BlogPostTranslation.schema.published), true))
+      builder.equal(translation.get(BlogPostTranslation.schema.published), true)
+    )
     query.multiselect(
-      post.get(BlogPost.schema.id).alias("id"), post.get(BlogPost.schema.slug).alias("slug"),
-      post.get(BlogPost.schema.title).alias("title"), post.get(BlogPost.schema.summary).alias("summary"),
-      post.get(BlogPost.schema.publishedAt).alias("published"), post.get(BlogPost.schema.updatedAt).alias("changed"),
+      post.get(BlogPost.schema.id).alias("id"),
+      post.get(BlogPost.schema.slug).alias("slug"),
+      post.get(BlogPost.schema.title).alias("title"),
+      post.get(BlogPost.schema.summary).alias("summary"),
+      post.get(BlogPost.schema.publishedAt).alias("published"),
+      post.get(BlogPost.schema.updatedAt).alias("changed"),
       translation.get(BlogPostTranslation.schema.id).alias("translationId"),
       translation.get(BlogPostTranslation.schema.title).alias("translatedTitle"),
       translation.get(BlogPostTranslation.schema.summary).alias("translatedSummary"),
-      translation.get(BlogPostTranslation.schema.updatedAt).alias("translationChanged"))
+      translation.get(BlogPostTranslation.schema.updatedAt).alias("translationChanged")
+    )
     val visible = builder.equal(post.get(BlogPost.schema.status), BlogPostStatus.PUBLISHED)
     val predicates = Seq(visible) ++ Option.when(locale.contains("de"))(
-      builder.isNotNull(translation.get(BlogPostTranslation.schema.id)))
+      builder.isNotNull(translation.get(BlogPostTranslation.schema.id))
+    )
     query.where(predicates*)
     query.orderBy(builder.desc(post.get(BlogPost.schema.publishedAt)), builder.asc(post.get(BlogPost.schema.id)))
     manager.createQuery(query).setMaxResults(limit).getResultList.asScala.toVector.flatMap { row =>
       val published = row.get("published", classOf[Instant])
       val sourceChanged = Option(row.get("changed", classOf[Instant]))
-      val source = PublishedPage(row.get("id", classOf[UUID]), row.get("slug", classOf[String]),
-        "en", row.get("title", classOf[String]), Option(row.get("summary", classOf[String])), published, sourceChanged)
-      val german = Option(row.get("translationId", classOf[UUID])).map { id =>
+      val source = PublishedPage(
+        row.get("id", classOf[util.UUID]),
+        row.get("slug", classOf[String]),
+        "en",
+        row.get("title", classOf[String]),
+        Option(row.get("summary", classOf[String])),
+        published,
+        sourceChanged
+      )
+      val german = Option(row.get("translationId", classOf[util.UUID])).map { id =>
         val changed = (sourceChanged.toSeq ++ Option(row.get("translationChanged", classOf[Instant]))).sorted.lastOption
-        PublishedPage(id, source.slug, "de", row.get("translatedTitle", classOf[String]),
-          Option(row.get("translatedSummary", classOf[String])), published, changed)
+        PublishedPage(
+          id,
+          source.slug,
+          "de",
+          row.get("translatedTitle", classOf[String]),
+          Option(row.get("translatedSummary", classOf[String])),
+          published,
+          changed
+        )
       }
       locale match {
         case Some("en") => Vector(source)
         case Some("de") => german.toVector
-        case _ => Vector(source) ++ german
+        case _          => Vector(source) ++ german
       }
     }
   }

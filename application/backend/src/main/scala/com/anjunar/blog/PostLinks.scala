@@ -16,9 +16,9 @@ class PostLinks {
 
   private def endpoint(name: String): Boolean = {
     val parameters: Seq[Class[?]] = name match {
-      case "list" => Seq(classOf[PostSearchParams])
+      case "list"              => Seq(classOf[PostSearchParams])
       case "create" | "update" => Seq(classOf[PreparedChange[?]])
-      case _ => Seq(classOf[String])
+      case _                   => Seq(classOf[String])
     }
     val method = classOf[EditorialPostsResource].getMethod(name, parameters*)
     EndpointPolicy.of(method, classOf[EditorialPostsResource]).allows(caller.hasRole)
@@ -29,7 +29,8 @@ class PostLinks {
       new Link("editorial", "/service/editorial/posts", "GET", "BlogPost"),
       new Link("uploadImage", "/service/editorial/media", "POST", "Media"),
       new Link("authors", "/service/editorial/authors", "GET", "Account"),
-      new Link("tags", "/service/editorial/tags", "GET", "BlogTag"))
+      new Link("tags", "/service/editorial/tags", "GET", "BlogTag")
+    )
     else util.List.of()
 
   def publicPost(post: BlogPost, locale: String = "en"): util.List[Link] = {
@@ -59,7 +60,7 @@ class PostLinks {
 
   def summary(post: BlogPostSummary, editorial: Boolean, locale: String = "en"): util.List[Link] = {
     val path = if (editorial) s"/service/editorial/posts/${post.id}"
-      else s"/service/blog/posts/${post.slug}?locale=$locale"
+    else s"/service/blog/posts/${post.slug}?locale=$locale"
     val values = new util.ArrayList[Link]()
     values.add(new Link("self", path, "GET", "BlogPost"))
     if (editorial && endpoint("update"))
@@ -74,12 +75,15 @@ class PostLinks {
     val path = if (editorial) "/service/editorial/posts" else "/service/blog/posts"
     def link(rel: String, start: Int) =
       new Link(rel, search.pageUrl(path, start), "GET", "BlogPost")
-    val values = Seq(Some(link("self", search.offset)),
+    val values = Seq(
+      Some(link("self", search.offset)),
       Option.when(editorial && endpoint("create"))(new Link("create", path, "POST", "BlogPost")),
       Option.when(search.offset > 0)(link("first", 0)),
       Option.when(search.offset > 0)(link("previous", math.max(0, search.offset - search.limit))),
       Option.when(search.offset.toLong + search.limit < total && search.offset <= Int.MaxValue - search.limit)(
-        link("next", search.offset + search.limit)))
+        link("next", search.offset + search.limit)
+      )
+    )
     values.flatten.asJava
   }
 }

@@ -23,10 +23,10 @@ final class ImageFileInput(blocked: ReadOnlyProperty[Boolean], selected: dom.Fil
       on("change") { event =>
         if (!blocked.get) event.raw match {
           case raw: dom.Event => raw.target match {
-            case input: dom.HTMLInputElement =>
-              Option(input.files).filter(_.length > 0).foreach(files => selected(files(0)))
-            case _ => ()
-          }
+              case input: dom.HTMLInputElement =>
+                Option(input.files).filter(_.length > 0).foreach(files => selected(files(0)))
+              case _ => ()
+            }
           case _ => ()
         }
         PropertyDsl.setProperty("value", "")

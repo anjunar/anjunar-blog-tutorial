@@ -12,9 +12,11 @@ import scala.jdk.CollectionConverters.*
 
 object SearchBeanReader {
   def read[E](
-      search: AbstractSearch, builder: HibernateCriteriaBuilder,
-      root: JpaRoot[E], query: JpaCriteriaQuery[?],
-      instances: Instance[PredicateProvider[Any, E]]
+    search: AbstractSearch,
+    builder: HibernateCriteriaBuilder,
+    root: JpaRoot[E],
+    query: JpaCriteriaQuery[?],
+    instances: Instance[PredicateProvider[Any, E]]
   ): HibernateSearchContextResult = {
     val model = AnnotationIntrospector.createWithType(search.getClass, classOf[JsonbProperty])
     val predicates = new util.ArrayList[Predicate]()
@@ -37,10 +39,13 @@ object SearchBeanReader {
   }
 
   def order[E](
-      search: AbstractSearch, builder: HibernateCriteriaBuilder,
-      root: JpaRoot[E], query: JpaCriteriaQuery[?],
-      predicates: util.List[Predicate], selection: util.List[Expression[?]],
-      instances: Instance[SortProvider[Any, E]]
+    search: AbstractSearch,
+    builder: HibernateCriteriaBuilder,
+    root: JpaRoot[E],
+    query: JpaCriteriaQuery[?],
+    predicates: util.List[Predicate],
+    selection: util.List[Expression[?]],
+    instances: Instance[SortProvider[Any, E]]
   ): util.List[Order] = {
     val model = AnnotationIntrospector.createWithType(search.getClass, classOf[JsonbProperty])
     val properties = model.properties.filter(_.findAnnotation(classOf[RestSort]) != null).toList
@@ -51,8 +56,16 @@ object SearchBeanReader {
         if (property.get(search) == null) new util.ArrayList[Order]()
         else {
           // As in the stack, sorting receives the entire search, not just the sort field.
-          provider.sort(Context(search, builder, predicates, root, query, selection,
-            property.name, new util.HashMap[String, Any]()))
+          provider.sort(Context(
+            search,
+            builder,
+            predicates,
+            root,
+            query,
+            selection,
+            property.name,
+            new util.HashMap[String, Any]()
+          ))
         }
       case None => new util.ArrayList[Order]()
     }
@@ -62,7 +75,8 @@ object SearchBeanReader {
     val matches = instances.iterator().asScala.filter(providerClass.isInstance).toList
     if (matches.size != 1)
       throw new IllegalStateException(
-        s"Expected one CDI search provider for ${providerClass.getName}, found ${matches.size}")
+        s"Expected one CDI search provider for ${providerClass.getName}, found ${matches.size}"
+      )
     matches.head
   }
 }

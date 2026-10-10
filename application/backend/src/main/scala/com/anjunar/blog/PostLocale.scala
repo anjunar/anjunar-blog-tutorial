@@ -10,6 +10,6 @@ import scala.compiletime.uninitialized
 object PostLocale {
   def parse(raw: String): String = Option(raw).filter(_.nonEmpty).getOrElse("en") match {
     case locale @ ("en" | "de") => locale
-    case _ => throw new BadRequestException("locale must be en or de")
+    case _                      => throw new BadRequestException("locale must be en or de")
   }
 }

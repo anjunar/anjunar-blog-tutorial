@@ -25,8 +25,8 @@ import ui.router.RouterLink.routerLink
 import scala.concurrent.ExecutionContext
 import scala.scalajs.js
 
-final class RelationshipPage(initial: CatalogData, service: CatalogService)
-    (using ExecutionContext) extends AbstractComponent {
+final class RelationshipPage(initial: CatalogData, service: CatalogService)(using ExecutionContext)
+    extends AbstractComponent {
   val tagName = "section"
   private val catalog = new CatalogState(initial, service)
 
@@ -39,10 +39,14 @@ final class RelationshipPage(initial: CatalogData, service: CatalogService)
       when(catalog.saved) { paragraph { role = "status"; text(i18n"Changes saved.") {} } }
       when(catalog.failed) { paragraph { role = "alert"; text(i18n"More entries could not be loaded. Try again.") {} } }
       heading(2) { text(i18n"Authors") {} }
-      paragraph { text(i18n"Only active administrators can be selected as authors. Existing posts keep their attribution.") {} }
+      paragraph {
+        text(i18n"Only active administrators can be selected as authors. Existing posts keep their attribution.") {}
+      }
       foreach(catalog.authors) { row => child(new AuthorEditor(row, service, catalog.recordAuthor)) {} }
       when(catalog.nextAuthors.map(_.nonEmpty)) {
-        button(i18n"Load more authors") { buttonType("button"); disabled = catalog.busy; onClick(_ => catalog.moreAuthors()) }
+        button(i18n"Load more authors") {
+          buttonType("button"); disabled = catalog.busy; onClick(_ => catalog.moreAuthors())
+        }
       }
       heading(2) { text(i18n"Tags") {} }
       catalog.createTag.foreach { link =>
@@ -56,4 +60,3 @@ final class RelationshipPage(initial: CatalogData, service: CatalogService)
     }
   }
 }
-

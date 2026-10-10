@@ -8,22 +8,35 @@ import jakarta.json.bind.annotation.{JsonbProperty, JsonbTransient}
 import jakarta.persistence.{Access, AccessType, Column, Entity, EntityManager, GeneratedValue, GenerationType, Id, NamedAttributeNode, NamedEntityGraph, NamedEntityGraphs, Table, UniqueConstraint, Version}
 import jakarta.validation.constraints.{Email, NotBlank, Pattern, Size}
 
-import java.util.{Locale, UUID}
+import java.util
 
 @Entity
 @SchemaId("b971c302")
 @Access(AccessType.FIELD)
-@Table(name = "blog_account", schema = "public",
-  uniqueConstraints = Array(new UniqueConstraint(name = "uq_blog_account_email", columnNames = Array("email"))))
+@Table(
+  name = "blog_account",
+  schema = "public",
+  uniqueConstraints = Array(new UniqueConstraint(name = "uq_blog_account_email", columnNames = Array("email")))
+)
 @NamedEntityGraphs(Array(
-  new NamedEntityGraph(name = "Account.self", attributeNodes = Array(
-    new NamedAttributeNode("id"), new NamedAttributeNode("version"),
-    new NamedAttributeNode("email"), new NamedAttributeNode("role"),
-    new NamedAttributeNode("displayName")
-  )),
-  new NamedEntityGraph(name = "Account.author", attributeNodes = Array(
-    new NamedAttributeNode("id"), new NamedAttributeNode("version"), new NamedAttributeNode("displayName")
-  ))
+  new NamedEntityGraph(
+    name = "Account.self",
+    attributeNodes = Array(
+      new NamedAttributeNode("id"),
+      new NamedAttributeNode("version"),
+      new NamedAttributeNode("email"),
+      new NamedAttributeNode("role"),
+      new NamedAttributeNode("displayName")
+    )
+  ),
+  new NamedEntityGraph(
+    name = "Account.author",
+    attributeNodes = Array(
+      new NamedAttributeNode("id"),
+      new NamedAttributeNode("version"),
+      new NamedAttributeNode("displayName")
+    )
+  )
 ))
 class Account extends EntityProvider {
   @Id
@@ -31,7 +44,7 @@ class Account extends EntityProvider {
   @Column(nullable = false, updatable = false)
   @SchemaId("580ef092")
   @JsonbProperty
-  var id: UUID = null
+  var id: util.UUID = null
 
   @Version
   @Column(nullable = false)
@@ -78,10 +91,10 @@ class Account extends EntityProvider {
 
 object Account extends SchemaProvider[Account.Schema] {
   def canonicalEmail(value: String): String =
-    Option(value).getOrElse("").trim.toLowerCase(Locale.ROOT)
+    Option(value).getOrElse("").trim.toLowerCase(util.Locale.ROOT)
 
   class Schema extends EntitySchema[Account](RuntimeContext.entityManager()) {
-    val id: SingularProperty[Account, UUID] = reference(_.id)
+    val id: SingularProperty[Account, util.UUID] = reference(_.id)
     val version: SingularProperty[Account, Long] = reference(_.version)
     val email: SingularProperty[Account, String] = reference(_.email)
     val role: SingularProperty[Account, String] = reference(_.role)

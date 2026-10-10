@@ -7,7 +7,7 @@ import jakarta.inject.Inject
 import jakarta.persistence.{EntityManager, LockModeType}
 import jakarta.ws.rs.ForbiddenException
 
-import java.util.UUID
+import java.util
 import scala.compiletime.uninitialized
 import scala.jdk.CollectionConverters.*
 
@@ -17,7 +17,7 @@ class ReferenceAccess extends EntityLoader {
   @Inject var caller: CallerAccess = uninitialized
   @Inject var media: MediaLifecycle = uninitialized
 
-  override def load(id: UUID, clazz: Class[?]): Any = {
+  override def load(id: util.UUID, clazz: Class[?]): Any = {
     if (!caller.administrator) throw new ForbiddenException()
     if (clazz == classOf[Account]) {
       val account = manager.find(classOf[Account], id)
@@ -42,11 +42,11 @@ class ReferenceAccess extends EntityLoader {
   def checkPostInput(json: JsonObject): Unit = {
     Option(json.value.get("coverImage")).foreach {
       case _: JsonNull => ()
-      case value => referenceId(value, "coverImage")
+      case value       => referenceId(value, "coverImage")
     }
     Option(json.value.get("author")).foreach {
       case _: JsonNull => ()
-      case value => referenceId(value, "author")
+      case value       => referenceId(value, "author")
     }
     Option(json.value.get("tags")).foreach {
       case array: JsonArray =>
@@ -56,11 +56,12 @@ class ReferenceAccess extends EntityLoader {
     }
   }
 
-  private def referenceId(value: Any, field: String): UUID = value match {
+  private def referenceId(value: Any, field: String): util.UUID = value match {
     case obj: JsonObject if obj.value.keySet().asScala.toSet == Set("id") =>
       obj.value.get("id") match {
         case id: JsonString =>
-          val parsed = try UUID.fromString(id.value) catch {
+          val parsed = try util.UUID.fromString(id.value)
+          catch {
             case _: IllegalArgumentException => Problem.invalidField(field, "Reference id must be a UUID.")
           }
           if (!parsed.toString.equalsIgnoreCase(id.value))

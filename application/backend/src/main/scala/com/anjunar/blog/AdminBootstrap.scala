@@ -5,11 +5,11 @@ import jakarta.enterprise.inject.se.SeContainerInitializer
 import jakarta.persistence.EntityManager
 
 import java.lang
-import java.util.UUID
+import java.util
 import scala.util.Using
 
 object AdminBootstrap {
-  def create(email: String, password: String)(using manager: EntityManager): UUID = {
+  def create(email: String, password: String)(using manager: EntityManager): util.UUID = {
     // A database lock also covers two operators starting this command concurrently.
     manager.createNativeQuery("select 1 from pg_advisory_xact_lock(725019331)", classOf[lang.Integer])
       .getSingleResult
@@ -27,4 +27,3 @@ object AdminBootstrap {
     account.id
   }
 }
-

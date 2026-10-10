@@ -9,7 +9,7 @@ import jakarta.ws.rs.{GET, Path, Produces}
 import jakarta.ws.rs.container.{ContainerRequestContext, ContainerResponseContext, ContainerResponseFilter}
 import jakarta.ws.rs.ext.Provider
 
-import java.util.UUID
+import java.util
 import java.util.concurrent.ConcurrentHashMap
 import scala.compiletime.uninitialized
 

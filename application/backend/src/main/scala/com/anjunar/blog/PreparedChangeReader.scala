@@ -19,11 +19,20 @@ import scala.compiletime.uninitialized
 @Consumes(Array(MediaType.APPLICATION_JSON))
 class PreparedChangeReader extends MessageBodyReader[PreparedChange[?]] {
   @Inject var changes: PreparedChanges = uninitialized
-  override def isReadable(clazz: Class[?], genericType: Type, annotations: Array[Annotation],
-      mediaType: MediaType): Boolean = PreparedChanges.supports(clazz, genericType)
+  override def isReadable(
+    clazz: Class[?],
+    genericType: Type,
+    annotations: Array[Annotation],
+    mediaType: MediaType
+  ): Boolean = PreparedChanges.supports(clazz, genericType)
 
-  override def readFrom(clazz: Class[PreparedChange[?]], genericType: Type,
-      annotations: Array[Annotation], mediaType: MediaType, headers: MultivaluedMap[String, String],
-      stream: InputStream): PreparedChange[?] =
+  override def readFrom(
+    clazz: Class[PreparedChange[?]],
+    genericType: Type,
+    annotations: Array[Annotation],
+    mediaType: MediaType,
+    headers: MultivaluedMap[String, String],
+    stream: InputStream
+  ): PreparedChange[?] =
     changes.create(RequestJson.read(stream), PreparedChanges.entityClass(genericType).get)
 }

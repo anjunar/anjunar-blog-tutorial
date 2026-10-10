@@ -11,7 +11,8 @@ import java.time.Duration
 class SsrHandlerSpec extends AnyFunSuite {
   test("a missing or failed SSR bundle returns 503 while the API and private shell remain available") {
     val reservation = new ServerSocket(0, 1, InetAddress.getByName("127.0.0.1"))
-    val port = try reservation.getLocalPort finally reservation.close()
+    val port = try reservation.getLocalPort
+    finally reservation.close()
     val origin = URI.create(s"http://127.0.0.1:$port")
     val assets = Files.createTempDirectory("abt22-handler-")
     val index = Files.writeString(assets.resolve("index.html"), "<!doctype html><div id=\"app\"></div>")
@@ -26,8 +27,11 @@ class SsrHandlerSpec extends AnyFunSuite {
         server.start()
         try {
           def request(path: String, method: String = "GET") =
-            client.send(HttpRequest.newBuilder(origin.resolve(path)).timeout(Duration.ofSeconds(20))
-              .method(method, HttpRequest.BodyPublishers.noBody()).build(), HttpResponse.BodyHandlers.ofString())
+            client.send(
+              HttpRequest.newBuilder(origin.resolve(path)).timeout(Duration.ofSeconds(20))
+                .method(method, HttpRequest.BodyPublishers.noBody()).build(),
+              HttpResponse.BodyHandlers.ofString()
+            )
           val publicPage = request("/en")
           assert(publicPage.statusCode() == 503)
           assert(!publicPage.body().contains("internal secret"))

@@ -1,15 +1,15 @@
 package com.anjunar.blog
 
 import java.security.{MessageDigest, SecureRandom}
-import java.util.{Arrays, Base64}
+import java.util
 import javax.crypto.SecretKeyFactory
 import javax.crypto.spec.PBEKeySpec
 
 object PasswordHash {
   private val iterations = 600000
   private val random = new SecureRandom()
-  private val encoder = Base64.getUrlEncoder.withoutPadding()
-  private val decoder = Base64.getUrlDecoder
+  private val encoder = util.Base64.getUrlEncoder.withoutPadding()
+  private val decoder = util.Base64.getUrlDecoder
 
   def acceptable(password: String): Boolean =
     password != null && password.length >= 15 && password.length <= 128
@@ -29,7 +29,7 @@ object PasswordHash {
       val salt = decoder.decode(parts(2))
       val expected = decoder.decode(parts(3))
       salt.length == 16 && expected.length == 32 &&
-        MessageDigest.isEqual(expected, derive(password, salt))
+      MessageDigest.isEqual(expected, derive(password, salt))
     } catch {
       case _: IllegalArgumentException => false
     }
@@ -44,7 +44,7 @@ object PasswordHash {
     try SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256").generateSecret(spec).getEncoded
     finally {
       spec.clearPassword()
-      Arrays.fill(chars, '\u0000')
+      util.Arrays.fill(chars, '\u0000')
     }
   }
 }

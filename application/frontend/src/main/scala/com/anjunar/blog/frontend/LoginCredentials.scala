@@ -10,4 +10,3 @@ final class LoginCredentials {
   val email: Property[String] = Property("")
   val password: Property[String] = Property("")
 }
-

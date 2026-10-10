@@ -12,53 +12,81 @@ import jakarta.validation.constraints.{AssertTrue, NotBlank, NotNull, Pattern, S
 import java.time.Instant
 import jakarta.persistence.{PrePersist, PreUpdate}
 import java.util
-import java.util.UUID
 
 @Entity
 @SchemaId("d4f39c20")
 @Access(AccessType.FIELD)
-@Table(name = "blog_post", schema = "public",
+@Table(
+  name = "blog_post",
+  schema = "public",
   uniqueConstraints = Array(new UniqueConstraint(name = "uq_blog_post_slug", columnNames = Array("slug"))),
-  check = Array(new CheckConstraint(name = "ck_blog_post_publication",
-    constraint = "(status = 'DRAFT' AND published_at IS NULL) OR (status = 'PUBLISHED' AND published_at IS NOT NULL)")))
-@NamedEntityGraphs(Array(
-  new NamedEntityGraph(name = "BlogPost.list", attributeNodes = Array(
-    new NamedAttributeNode("id"),
-    new NamedAttributeNode("version"),
-    new NamedAttributeNode("slug"),
-    new NamedAttributeNode("title"),
-    new NamedAttributeNode("summary"),
-    new NamedAttributeNode("status"),
-    new NamedAttributeNode("publishedAt")
-  )),
-  new NamedEntityGraph(name = "BlogPost.detail", attributeNodes = Array(
-    new NamedAttributeNode("id"),
-    new NamedAttributeNode("version"),
-    new NamedAttributeNode("slug"),
-    new NamedAttributeNode("title"),
-    new NamedAttributeNode("content"),
-    new NamedAttributeNode("contentFormat"),
-    new NamedAttributeNode("summary"),
-    new NamedAttributeNode("status"),
-    new NamedAttributeNode("publishedAt"),
-    new NamedAttributeNode("coverAlt"),
-    new NamedAttributeNode(value = "coverImage", subgraph = "post-cover"),
-    new NamedAttributeNode(value = "author", subgraph = "public-author"),
-    new NamedAttributeNode(value = "tags", subgraph = "post-tags")
-  ), subgraphs = Array(
-    new NamedSubgraph(name = "post-cover", attributeNodes = Array(
-      new NamedAttributeNode("id"), new NamedAttributeNode("version"), new NamedAttributeNode("name"),
-      new NamedAttributeNode("contentType"), new NamedAttributeNode("width"),
-      new NamedAttributeNode("height"), new NamedAttributeNode("byteSize")
-    )),
-    new NamedSubgraph(name = "public-author", attributeNodes = Array(
-      new NamedAttributeNode("id"), new NamedAttributeNode("version"), new NamedAttributeNode("displayName")
-    )),
-    new NamedSubgraph(name = "post-tags", attributeNodes = Array(
-      new NamedAttributeNode("id"), new NamedAttributeNode("version"),
-      new NamedAttributeNode("slug"), new NamedAttributeNode("name")
-    ))
+  check = Array(new CheckConstraint(
+    name = "ck_blog_post_publication",
+    constraint = "(status = 'DRAFT' AND published_at IS NULL) OR (status = 'PUBLISHED' AND published_at IS NOT NULL)"
   ))
+)
+@NamedEntityGraphs(Array(
+  new NamedEntityGraph(
+    name = "BlogPost.list",
+    attributeNodes = Array(
+      new NamedAttributeNode("id"),
+      new NamedAttributeNode("version"),
+      new NamedAttributeNode("slug"),
+      new NamedAttributeNode("title"),
+      new NamedAttributeNode("summary"),
+      new NamedAttributeNode("status"),
+      new NamedAttributeNode("publishedAt")
+    )
+  ),
+  new NamedEntityGraph(
+    name = "BlogPost.detail",
+    attributeNodes = Array(
+      new NamedAttributeNode("id"),
+      new NamedAttributeNode("version"),
+      new NamedAttributeNode("slug"),
+      new NamedAttributeNode("title"),
+      new NamedAttributeNode("content"),
+      new NamedAttributeNode("contentFormat"),
+      new NamedAttributeNode("summary"),
+      new NamedAttributeNode("status"),
+      new NamedAttributeNode("publishedAt"),
+      new NamedAttributeNode("coverAlt"),
+      new NamedAttributeNode(value = "coverImage", subgraph = "post-cover"),
+      new NamedAttributeNode(value = "author", subgraph = "public-author"),
+      new NamedAttributeNode(value = "tags", subgraph = "post-tags")
+    ),
+    subgraphs = Array(
+      new NamedSubgraph(
+        name = "post-cover",
+        attributeNodes = Array(
+          new NamedAttributeNode("id"),
+          new NamedAttributeNode("version"),
+          new NamedAttributeNode("name"),
+          new NamedAttributeNode("contentType"),
+          new NamedAttributeNode("width"),
+          new NamedAttributeNode("height"),
+          new NamedAttributeNode("byteSize")
+        )
+      ),
+      new NamedSubgraph(
+        name = "public-author",
+        attributeNodes = Array(
+          new NamedAttributeNode("id"),
+          new NamedAttributeNode("version"),
+          new NamedAttributeNode("displayName")
+        )
+      ),
+      new NamedSubgraph(
+        name = "post-tags",
+        attributeNodes = Array(
+          new NamedAttributeNode("id"),
+          new NamedAttributeNode("version"),
+          new NamedAttributeNode("slug"),
+          new NamedAttributeNode("name")
+        )
+      )
+    )
+  )
 ))
 class BlogPost extends EntityProvider {
   @Id
@@ -66,7 +94,7 @@ class BlogPost extends EntityProvider {
   @Column(nullable = false, updatable = false)
   @SchemaId("a2473e8b")
   @JsonbProperty
-  var id: UUID = null
+  var id: util.UUID = null
 
   @Version
   @Column(nullable = false)
@@ -103,11 +131,14 @@ class BlogPost extends EntityProvider {
   var contentFormat: String = "PLAIN_TEXT"
 
   @ManyToMany(fetch = FetchType.LAZY)
-  @JoinTable(name = "blog_post_media", schema = "public",
+  @JoinTable(
+    name = "blog_post_media",
+    schema = "public",
     joinColumns = Array(new JoinColumn(name = "post_id")),
     inverseJoinColumns = Array(new JoinColumn(name = "media_id")),
     foreignKey = new ForeignKey(name = "fk_blog_post_media_post"),
-    inverseForeignKey = new ForeignKey(name = "fk_blog_post_media_media"))
+    inverseForeignKey = new ForeignKey(name = "fk_blog_post_media_media")
+  )
   @NotNull @SchemaId("ad191002") @JsonbTransient
   var inlineMedia: util.Set[Media] = new util.LinkedHashSet[Media]()
 
@@ -144,11 +175,14 @@ class BlogPost extends EntityProvider {
 
   // Shared tags are not owned by a post: removing a link must never delete a tag.
   @ManyToMany(fetch = FetchType.LAZY)
-  @JoinTable(name = "blog_post_tag", schema = "public",
+  @JoinTable(
+    name = "blog_post_tag",
+    schema = "public",
     joinColumns = Array(new JoinColumn(name = "post_id")),
     inverseJoinColumns = Array(new JoinColumn(name = "tag_id")),
     foreignKey = new ForeignKey(name = "fk_blog_post_tag_post"),
-    inverseForeignKey = new ForeignKey(name = "fk_blog_post_tag_tag"))
+    inverseForeignKey = new ForeignKey(name = "fk_blog_post_tag_tag")
+  )
   @NotNull @Size(max = 20)
   @SchemaId("42b9d1ef") @JsonbProperty
   var tags: util.Set[BlogTag] = new util.LinkedHashSet[BlogTag]()
@@ -202,15 +236,15 @@ class BlogPost extends EntityProvider {
   @AssertTrue(message = "Publication status, time, and content must be consistent")
   def isPublicationConsistent: Boolean =
     status match {
-      case BlogPostStatus.DRAFT => publishedAt == null
+      case BlogPostStatus.DRAFT     => publishedAt == null
       case BlogPostStatus.PUBLISHED => publishedAt != null && hasPublishableContent
-      case null => false
+      case null                     => false
     }
 }
 
 object BlogPost extends SchemaProvider[BlogPost.Schema] {
   class Schema extends EntitySchema[BlogPost](RuntimeContext.entityManager()) {
-    val id: SingularProperty[BlogPost, UUID] = reference(_.id)
+    val id: SingularProperty[BlogPost, util.UUID] = reference(_.id)
     val version: SingularProperty[BlogPost, Long] = reference(_.version)
     val updatedAt: SingularProperty[BlogPost, Instant] = reference(_.updatedAt)
     val slug: SingularProperty[BlogPost, String] = reference(_.slug, classOf[PostEditRule])

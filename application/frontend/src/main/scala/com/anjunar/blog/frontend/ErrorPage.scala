@@ -23,11 +23,12 @@ final class ErrorPage(status: Int, actions: BlogActions) extends AbstractCompone
       case 403 => i18n"Access denied"
       case 404 => i18n"Post not found"
       case 400 => i18n"Invalid page"
-      case _ => i18n"Posts are unavailable"
+      case _   => i18n"Posts are unavailable"
     }
     PageHead.current(using this).foreach(_.bind(
       HeadEntry.title(I18nRuntime.require(using this).resolveNow(message) + " — Anjunar Journal"),
-      HeadEntry.meta("robots", "noindex, follow"))(using this))
+      HeadEntry.meta("robots", "noindex, follow")
+    )(using this))
     render(this, cursor) {
       classes = "error-state"
       role = "alert"
@@ -37,7 +38,7 @@ final class ErrorPage(status: Int, actions: BlogActions) extends AbstractCompone
           case 403 => i18n"Access denied"
           case 404 => i18n"Post not found"
           case 400 => i18n"Invalid page"
-          case _ => i18n"Posts are unavailable"
+          case _   => i18n"Posts are unavailable"
         }) {}
       }
       paragraph {
@@ -46,7 +47,7 @@ final class ErrorPage(status: Int, actions: BlogActions) extends AbstractCompone
           case 403 => i18n"Your account does not have access to this workspace."
           case 404 => i18n"This post is not available to read."
           case 400 => i18n"Open the latest posts to start again."
-          case _ => i18n"We could not load the posts. Please try again."
+          case _   => i18n"We could not load the posts. Please try again."
         }) {}
       }
       if (status == 503) {

@@ -5,11 +5,11 @@ import jakarta.annotation.security.{DenyAll, PermitAll}
 import jakarta.ws.rs.{GET, PATCH, POST, Path, PathParam}
 import org.scalatest.funsuite.AnyFunSuite
 
-import java.util.UUID
+import java.util
 class LinkBuilderSpec extends AnyFunSuite {
   private def post(): BlogPost = {
     val value = new BlogPost()
-    value.id = UUID.randomUUID()
+    value.id = util.UUID.randomUUID()
     value
   }
 
@@ -22,7 +22,7 @@ class LinkBuilderSpec extends AnyFunSuite {
 
   test("a PreparedChange placeholder uses an explicit entity ID and the annotated PATCH verb") {
     val parent = post()
-    val translation = UUID.randomUUID()
+    val translation = util.UUID.randomUUID()
     val link = LinkBuilder.create[LinkBuilderExampleResource](_.update(parent, null))
       .withVariable("id", translation).build()
     assert(link.rel == "update" && link.method == "PATCH")

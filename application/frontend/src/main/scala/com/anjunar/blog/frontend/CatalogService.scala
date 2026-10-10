@@ -36,7 +36,8 @@ final class CatalogService(accounts: AccountService)(using ExecutionContext) {
   }
 
   def saveTag(link: ApiLink, body: js.Dynamic): Future[BlogTagData] = {
-    val method = if (link.rel == "create") "POST" else {
+    val method = if (link.rel == "create") "POST"
+    else {
       require(link.rel == "update", "Unexpected tag operation")
       "PATCH"
     }
@@ -44,4 +45,3 @@ final class CatalogService(accounts: AccountService)(using ExecutionContext) {
     accounts.session().flatMap(state => HttpJson.write[BlogTagData](path, method, body, state.csrfToken))
   }
 }
-

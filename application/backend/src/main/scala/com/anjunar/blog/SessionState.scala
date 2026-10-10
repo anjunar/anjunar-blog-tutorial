@@ -20,7 +20,7 @@ import scala.compiletime.uninitialized
 import scala.annotation.meta.field
 
 final class SessionState(
-    @(JsonbProperty @field) val csrfToken: String,
-    @(JsonbProperty @field) val account: Account,
-    @(JsonbProperty @field)("$links") val links: util.List[Link] = util.List.of()
+  @(JsonbProperty @field) val csrfToken: String,
+  @(JsonbProperty @field) val account: Account,
+  @(JsonbProperty @field)("$links") val links: util.List[Link] = util.List.of()
 ) extends DTO

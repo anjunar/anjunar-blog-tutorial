@@ -13,7 +13,8 @@ class ServerLifecycleSpec extends AnyFunSuite with Eventually {
   test("discovered resources and providers share a request scope and release their contextual instances") {
     ScopeEvents.clear()
     val reservation = new ServerSocket(0, 1, InetAddress.getByName("127.0.0.1"))
-    val port = try reservation.getLocalPort finally reservation.close()
+    val port = try reservation.getLocalPort
+    finally reservation.close()
     val server = ApplicationMain.start(port)
     val client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build()
     var applicationId = ""

@@ -8,22 +8,28 @@ import jakarta.json.bind.annotation.JsonbProperty
 import jakarta.validation.Validation
 import org.scalatest.funsuite.AnyFunSuite
 
-import java.util.UUID
+import java.util
 import scala.util.Using
 
 class MapperReferenceSpec extends AnyFunSuite {
   private def assign(post: ReferenceProbe, target: ReferenceAuthor): Unit =
     Using.resource(Validation.buildDefaultValidatorFactory()) { factory =>
       val loader = new EntityLoader {
-        override def load(id: UUID, clazz: Class[?]): Any = {
+        override def load(id: util.UUID, clazz: Class[?]): Any = {
           assert(id == target.id && clazz == classOf[ReferenceAuthor])
           target
         }
       }
       val json = JsonParser.parse(s"""{"author":{"id":"${target.id}"}}""")
-      JsonMapper.prepare(json, post, TypeResolver.resolve(classOf[ReferenceProbe]), null,
-        loader, [T] => (clazz: Class[T]) => clazz.getConstructor().newInstance(),
-        factory.getValidator).applyChanges()
+      JsonMapper.prepare(
+        json,
+        post,
+        TypeResolver.resolve(classOf[ReferenceProbe]),
+        null,
+        loader,
+        [T] => (clazz: Class[T]) => clazz.getConstructor().newInstance(),
+        factory.getValidator
+      ).applyChanges()
     }
 
   test("the mapper resolves a new to-one EntityProvider reference through its loader") {

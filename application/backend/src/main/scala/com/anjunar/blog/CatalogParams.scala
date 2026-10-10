@@ -26,12 +26,18 @@ final class CatalogParams {
     val from = start
     val count = size
     def page(rel: String, index: Int): Link =
-      new Link(rel, UriBuilder.fromPath(path).queryParam("offset", index)
-        .queryParam("limit", count).build().toASCIIString, "GET", "")
-    Seq(Some(page("self", from)),
+      new Link(
+        rel,
+        UriBuilder.fromPath(path).queryParam("offset", index)
+          .queryParam("limit", count).build().toASCIIString,
+        "GET",
+        ""
+      )
+    Seq(
+      Some(page("self", from)),
       Option.when(from > 0)(page("previous", math.max(0, from - count))),
       Option.when(from.toLong + count < total && from <= Int.MaxValue - count)(page("next", from + count)),
-      Option.when(create)(new Link("create", path, "POST", "BlogTag"))).flatten.asJava
+      Option.when(create)(new Link("create", path, "POST", "BlogTag"))
+    ).flatten.asJava
   }
 }
-

@@ -13,8 +13,10 @@ final class BlogPostTranslation {
   @JsonIgnore(deserializable = true) val locale: Property[String] = Property("de")
   @(NotBlank @field)() @(Size @field)(min = 3, max = 180)
   val title: Property[String] = Property("")
-  @(Size @field)(max = 300) val summary: Property[String] = Property(null)
-  @(Size @field)(max = 100000) val content: Property[String] = Property("")
+  @(Size @field)(max = 300)
+  val summary: Property[String] = Property(null)
+  @(Size @field)(max = 100000)
+  val content: Property[String] = Property("")
   @JsonIgnore(deserializable = true) val published: Property[Boolean] = Property(false)
 
   @JsonIgnore() def fields: Seq[Property[String]] = Seq(title, summary, content)
@@ -40,4 +42,3 @@ final class BlogPostTranslation {
     published.set(saved.published.get); published.setDefault(saved.published.get)
   }
 }
-

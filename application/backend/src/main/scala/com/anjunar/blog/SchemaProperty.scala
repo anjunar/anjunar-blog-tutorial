@@ -10,7 +10,6 @@ import scala.annotation.meta.field
 import scala.jdk.CollectionConverters.*
 
 class SchemaProperty(
-    @(JsonbProperty @field) val name: String,
-    @(JsonbProperty @field)("type") val typeName: String
+  @(JsonbProperty @field) val name: String,
+  @(JsonbProperty @field)("type") val typeName: String
 ) extends DTO
-

@@ -10,14 +10,20 @@ class PostMarkdownSpec extends AnyFunSuite {
 
   test("image policy accepts only local media identities") {
     assert(PostMarkdown.mediaPolicy.resolve(s"/service/media/$id").exists(_.src == s"/service/media/$id"))
-    Seq(s"https://example.test/service/media/$id", s"//example.test/service/media/$id",
-      "data:image/png;base64,AA", "/service/media/not-an-id", s"/service/media/$id?download",
-      s"/service/media/$id#fragment").foreach(source => assert(PostMarkdown.mediaPolicy.resolve(source).isEmpty))
+    Seq(
+      s"https://example.test/service/media/$id",
+      s"//example.test/service/media/$id",
+      "data:image/png;base64,AA",
+      "/service/media/not-an-id",
+      s"/service/media/$id?download",
+      s"/service/media/$id#fragment"
+    ).foreach(source => assert(PostMarkdown.mediaPolicy.resolve(source).isEmpty))
   }
 
   test("old detail responses remain plain text and conversion sends both fields") {
     val post = JsonMapper.deserialize[BlogPost](js.JSON.parse(
-      s"""{"id":"$id","version":0,"title":"Old post","slug":"old-post","content":"*literal* <tag>"}"""))
+      s"""{"id":"$id","version":0,"title":"Old post","slug":"old-post","content":"*literal* <tag>"}"""
+    ))
     assert(post.contentFormat.get == "PLAIN_TEXT")
     assert(!post.isDirty)
     post.content.set(PostMarkdown.fromPlainText(post.content.get))
@@ -30,13 +36,15 @@ class PostMarkdownSpec extends AnyFunSuite {
 
   test("a late plain-text save cannot undo conversion or newer document input") {
     val post = JsonMapper.deserialize[BlogPost](js.JSON.parse(
-      s"""{"id":"$id","version":0,"title":"Old post","slug":"old-post","content":"Original"}"""))
+      s"""{"id":"$id","version":0,"title":"Old post","slug":"old-post","content":"Original"}"""
+    ))
     post.content.set("Submitted")
     val submitted = post.snapshot
     post.contentFormat.set("MARKDOWN")
     post.content.set("**Newer document**")
     val saved = JsonMapper.deserialize[BlogPost](js.JSON.parse(
-      s"""{"id":"$id","version":1,"title":"Old post","slug":"old-post","content":"Submitted","contentFormat":"PLAIN_TEXT"}"""))
+      s"""{"id":"$id","version":1,"title":"Old post","slug":"old-post","content":"Submitted","contentFormat":"PLAIN_TEXT"}"""
+    ))
     post.mergeSaved(saved, submitted)
     assert(post.content.get == "**Newer document**")
     assert(post.contentFormat.get == "MARKDOWN")

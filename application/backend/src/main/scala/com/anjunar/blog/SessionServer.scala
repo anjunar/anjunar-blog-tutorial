@@ -15,8 +15,7 @@ class SessionServer extends UndertowCdiEmbeddedServer {
     try {
       try { if (renderer != null) renderer.close() }
       finally if (sessions != null) sessions.stop()
-    }
-    finally {
+    } finally {
       try super.stop()
       finally if (securityDomain != null) SecurityDomain.unregisterClassLoader(getClass.getClassLoader)
     }

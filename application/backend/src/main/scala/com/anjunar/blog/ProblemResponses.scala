@@ -11,7 +11,6 @@ import org.hibernate.exception.{ConstraintViolationException as SqlConstraintExc
 import org.slf4j.LoggerFactory
 
 import java.util
-import java.util.UUID
 import scala.compiletime.uninitialized
 import scala.jdk.CollectionConverters.*
 
@@ -23,17 +22,36 @@ object ProblemResponses {
     chain.collectFirst {
       case problem: ApiProblem => Problem.response(problem.status, problem.detail, path, problem.kind, problem.errors)
       case invalid: ErrorRequestException =>
-        Problem.response(400, "The request contains invalid values.", path, Problem.validation, invalid.errors.asScala.toSeq)
+        Problem.response(
+          400,
+          "The request contains invalid values.",
+          path,
+          Problem.validation,
+          invalid.errors.asScala.toSeq
+        )
       case invalid: ValidationException =>
         val errors = invalid.getConstraintViolations.asScala.toSeq.map(value =>
-          new ErrorRequest(util.List.of[Any](value.getPropertyPath.toString), value.getMessage))
+          new ErrorRequest(util.List.of[Any](value.getPropertyPath.toString), value.getMessage)
+        )
         Problem.response(400, "The request contains invalid values.", path, Problem.validation, errors)
-      case violation: SqlConstraintException if Set("uq_blog_post_slug", "blog_post_slug_key").contains(violation.getConstraintName) =>
-        Problem.response(409, "This slug is already used by another post.", path, Problem.conflict,
-          Seq(new ErrorRequest(util.List.of[Any]("slug"), "Choose an unused slug.")))
-      case violation: SqlConstraintException if Set("uq_blog_tag_slug", "blog_tag_slug_key").contains(violation.getConstraintName) =>
-        Problem.response(409, "This slug is already used by another tag.", path, Problem.conflict,
-          Seq(new ErrorRequest(util.List.of[Any]("slug"), "Choose an unused slug.")))
+      case violation: SqlConstraintException
+          if Set("uq_blog_post_slug", "blog_post_slug_key").contains(violation.getConstraintName) =>
+        Problem.response(
+          409,
+          "This slug is already used by another post.",
+          path,
+          Problem.conflict,
+          Seq(new ErrorRequest(util.List.of[Any]("slug"), "Choose an unused slug."))
+        )
+      case violation: SqlConstraintException
+          if Set("uq_blog_tag_slug", "blog_tag_slug_key").contains(violation.getConstraintName) =>
+        Problem.response(
+          409,
+          "This slug is already used by another tag.",
+          path,
+          Problem.conflict,
+          Seq(new ErrorRequest(util.List.of[Any]("slug"), "Choose an unused slug."))
+        )
       case violation: SqlConstraintException if violation.getKind == SqlConstraintException.ConstraintKind.UNIQUE =>
         Problem.response(409, "This conflicts with data that already exists.", path, Problem.conflict)
       case _: OptimisticLockException | _: StaleStateException =>
@@ -51,7 +69,7 @@ object ProblemResponses {
           }
           result.build()
         case None =>
-          val id = UUID.randomUUID().toString
+          val id = util.UUID.randomUUID().toString
           log.error(s"Unexpected request failure $id at $path", error)
           Problem.response(500, "An unexpected error occurred.", path, errorId = Some(id))
       }

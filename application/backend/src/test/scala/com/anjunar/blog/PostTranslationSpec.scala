@@ -12,7 +12,7 @@ import java.net.{CookieManager, CookiePolicy, InetAddress, ServerSocket, URI}
 import java.net.http.{HttpClient, HttpRequest, HttpResponse}
 import java.sql.DriverManager
 import java.time.Duration
-import java.util.UUID
+import java.util
 import java.util.concurrent.{Callable, Executors}
 import javax.imageio.ImageIO
 import scala.collection.mutable
@@ -22,9 +22,9 @@ import scala.util.Using
 class PostTranslationSpec extends AnyFunSuite with BeforeAndAfterAll {
   private var server: UndertowCdiEmbeddedServer = null
   private var port = 0
-  private val accounts = mutable.Buffer.empty[UUID]
-  private val posts = mutable.Buffer.empty[UUID]
-  private val images = mutable.Buffer.empty[UUID]
+  private val accounts = mutable.Buffer.empty[util.UUID]
+  private val posts = mutable.Buffer.empty[util.UUID]
+  private val images = mutable.Buffer.empty[util.UUID]
   private val clients = mutable.Buffer.empty[HttpClient]
   private val password = "a long tutorial passphrase"
   private lazy val hash = PasswordHash.create(password)
@@ -50,7 +50,10 @@ class PostTranslationSpec extends AnyFunSuite with BeforeAndAfterAll {
     if (server != null) server.stop()
   } finally {
     posts.foreach { id =>
-      sql("delete from public.blog_post_translation_media where translation_id in (select id from public.blog_post_translation where post_id = ?)", id)
+      sql(
+        "delete from public.blog_post_translation_media where translation_id in (select id from public.blog_post_translation where post_id = ?)",
+        id
+      )
       sql("delete from public.blog_post_translation where post_id = ?", id)
       sql("delete from public.blog_post where id = ?", id)
     }
@@ -66,40 +69,62 @@ class PostTranslationSpec extends AnyFunSuite with BeforeAndAfterAll {
         .timeout(Duration.ofSeconds(20)).header("Accept", "*/*")
       if (csrf.nonEmpty) request.header("X-CSRF-Token", csrf)
       if (method == "POST" || method == "PATCH") request.header("Content-Type", "application/json")
-      client.send(request.method(method, HttpRequest.BodyPublishers.ofString(body)).build(), HttpResponse.BodyHandlers.ofString())
+      client.send(
+        request.method(method, HttpRequest.BodyPublishers.ofString(body)).build(),
+        HttpResponse.BodyHandlers.ofString()
+      )
     }
     def token: String = json(send("auth/session")).getString("csrfToken")
     def write(path: String, method: String, body: String): HttpResponse[String] = send(path, method, body, token)
-    def upload(): UUID = {
+    def upload(): util.UUID = {
       val bytes = new ByteArrayOutputStream()
       ImageIO.write(new BufferedImage(8, 8, BufferedImage.TYPE_INT_RGB), "png", bytes)
       val request = HttpRequest.newBuilder(URI.create(s"http://127.0.0.1:$port/service/editorial/media"))
         .header("Content-Type", "image/png").header("X-CSRF-Token", token)
         .POST(HttpRequest.BodyPublishers.ofByteArray(bytes.toByteArray)).build()
-      val id = UUID.fromString(json(client.send(request, HttpResponse.BodyHandlers.ofString())).getJsonObject("data").getString("id"))
+      val id = util.UUID.fromString(json(client.send(
+        request,
+        HttpResponse.BodyHandlers.ofString()
+      )).getJsonObject("data").getString("id"))
       images += id
       id
     }
   }
   private def admin(role: String = "ADMIN"): Browser = {
-    val id = UUID.randomUUID()
+    val id = util.UUID.randomUUID()
     accounts += id
     val email = s"translation-$id@example.com"
-    sql("insert into public.blog_account (id, version, email, role, password_hash, authentication_version, locked) values (?, 0, ?, ?, ?, 0, false)",
-      id, email, role, hash)
+    sql(
+      "insert into public.blog_account (id, version, email, role, password_hash, authentication_version, locked) values (?, 0, ?, ?, ?, 0, false)",
+      id,
+      email,
+      role,
+      hash
+    )
     val browser = new Browser()
     json(browser.write("auth/login", "POST", new JsonObject().put("email", email).put("password", password).encode()))
     browser
   }
-  private def post(published: Boolean = true, title: String = "English source", summary: String = "English summary"): UUID = {
-    val id = UUID.randomUUID()
+  private def post(
+    published: Boolean = true,
+    title: String = "English source",
+    summary: String = "English summary"
+  ): util.UUID = {
+    val id = util.UUID.randomUUID()
     posts += id
-    sql("insert into public.blog_post (id, version, slug, title, summary, content, status, published_at) values (?, 0, ?, ?, ?, 'English body', ?, case when ? then current_timestamp else null end)",
-      id, s"translation-$id", title, summary, if (published) "PUBLISHED" else "DRAFT", published)
+    sql(
+      "insert into public.blog_post (id, version, slug, title, summary, content, status, published_at) values (?, 0, ?, ?, ?, 'English body', ?, case when ? then current_timestamp else null end)",
+      id,
+      s"translation-$id",
+      title,
+      summary,
+      if (published) "PUBLISHED" else "DRAFT",
+      published
+    )
     id
   }
-  private def path(id: UUID): String = s"editorial/posts/$id/translations"
-  private def publicPath(id: UUID, locale: String = "de"): String = s"blog/posts/translation-$id?locale=$locale"
+  private def path(id: util.UUID): String = s"editorial/posts/$id/translations"
+  private def publicPath(id: util.UUID, locale: String = "de"): String = s"blog/posts/translation-$id?locale=$locale"
   private def json(response: HttpResponse[String]): JsonObject = {
     assert(Set(200, 201).contains(response.statusCode()), s"${response.statusCode()}: ${response.body()}")
     JsonParser.parse(response.body()).asInstanceOf[JsonObject]
@@ -108,9 +133,9 @@ class PostTranslationSpec extends AnyFunSuite with BeforeAndAfterAll {
   private def version(value: JsonObject): String = value.value.get("version").value.toString
   private def input(title: String = "Deutscher Titel", content: String = "Deutscher Inhalt"): String =
     new JsonObject().put("title", title).put("content", content).encode()
-  private def create(browser: Browser, id: UUID, body: String = input()): JsonObject =
+  private def create(browser: Browser, id: util.UUID, body: String = input()): JsonObject =
     data(browser.write(s"${path(id)}/de", "POST", body))
-  private def command(browser: Browser, id: UUID, value: JsonObject, name: String): JsonObject =
+  private def command(browser: Browser, id: util.UUID, value: JsonObject, name: String): JsonObject =
     data(browser.write(s"${path(id)}/${value.getString("id")}/$name", "POST", s"""{"version":${version(value)}}"""))
   private def rows(value: JsonObject): Seq[JsonObject] = value.value.get("rows").asInstanceOf[JsonArray].value.asScala
     .toSeq.map(_.asInstanceOf[JsonObject].getJsonObject("data"))
@@ -160,7 +185,11 @@ class PostTranslationSpec extends AnyFunSuite with BeforeAndAfterAll {
     assert(browser.write(url, "PATCH", """{"title":"Neuer Titel"}""").statusCode() == 400)
     assert(version(data(browser.write(url, "PATCH", """{"version":0,"title":"Neuer Titel"}"""))) == "1")
     assert(browser.write(url, "PATCH", """{"version":0,"title":"Veralteter Titel"}""").statusCode() == 409)
-    assert(version(data(browser.write(s"editorial/posts/$id", "PATCH", """{"version":0,"title":"Updated English source"}"""))) == "1")
+    assert(version(data(browser.write(
+      s"editorial/posts/$id",
+      "PATCH",
+      """{"version":0,"title":"Updated English source"}"""
+    ))) == "1")
     assert(data(browser.send(s"${path(id)}/de")).getString("title") == "Neuer Titel")
   }
   test("immutable fields, malformed Markdown and invalid title roll back the entire update") {
@@ -171,7 +200,11 @@ class PostTranslationSpec extends AnyFunSuite with BeforeAndAfterAll {
     for (field <- Seq("post", "locale", "published", "inlineMedia"))
       assert(browser.write(url, "PATCH", s"""{"version":0,"$field":null}""").statusCode() == 400, field)
     assert(browser.write(url, "PATCH", """{"version":0,"title":"x","content":"New body"}""").statusCode() == 400)
-    assert(browser.write(url, "PATCH", """{"version":0,"title":"Changed title","content":"![bad](https://example.com/tracker.png)"}""").statusCode() == 400)
+    assert(browser.write(
+      url,
+      "PATCH",
+      """{"version":0,"title":"Changed title","content":"![bad](https://example.com/tracker.png)"}"""
+    ).statusCode() == 400)
     val unchanged = data(browser.send(s"${path(id)}/de"))
     assert(unchanged.getString("title") == "Deutscher Titel" && unchanged.getString("content") == "Deutscher Inhalt")
     assert(version(unchanged) == "0")
@@ -192,8 +225,11 @@ class PostTranslationSpec extends AnyFunSuite with BeforeAndAfterAll {
     val id = post()
     val saved = create(browser, id)
     val other = post()
-    assert(browser.write(s"${path(other)}/${saved.getString("id")}", "PATCH",
-      """{"version":0,"title":"Wrong parent"}""").statusCode() == 404)
+    assert(browser.write(
+      s"${path(other)}/${saved.getString("id")}",
+      "PATCH",
+      """{"version":0,"title":"Wrong parent"}"""
+    ).statusCode() == 404)
     val unchanged = data(browser.send(s"${path(id)}/de"))
     assert(unchanged.getString("title") == "Deutscher Titel" && version(unchanged) == "0")
     val sameParent = s"editorial/posts/${id.toString.toUpperCase}/translations/${saved.getString("id")}"
@@ -221,15 +257,21 @@ class PostTranslationSpec extends AnyFunSuite with BeforeAndAfterAll {
     val update = savedLinks("update")
     assert(update.getString("url") == s"$base/${saved.getString("id")}" && update.getString("method") == "PATCH")
     val publish = savedLinks("publish")
-    val published = json(browser.write(publish.getString("url").stripPrefix("/service/"), publish.getString("method"),
-      s"""{"version":${version(saved)}}"""))
+    val published = json(browser.write(
+      publish.getString("url").stripPrefix("/service/"),
+      publish.getString("method"),
+      s"""{"version":${version(saved)}}"""
+    ))
     assert(links(published).keySet == Set("self", "update", "retract"))
 
-    for (missing <- Seq(UUID.randomUUID().toString, "not-a-uuid")) {
+    for (missing <- Seq(util.UUID.randomUUID().toString, "not-a-uuid")) {
       assert(browser.send(s"editorial/posts/$missing/translations/de").statusCode() == 404)
       assert(browser.write(s"editorial/posts/$missing/translations/de", "POST", input()).statusCode() == 404)
-      assert(browser.write(s"editorial/posts/$missing/translations/${saved.getString("id")}", "PATCH",
-        """{"version":1,"title":"Unreachable parent"}""").statusCode() == 404)
+      assert(browser.write(
+        s"editorial/posts/$missing/translations/${saved.getString("id")}",
+        "PATCH",
+        """{"version":1,"title":"Unreachable parent"}"""
+      ).statusCode() == 404)
     }
     assert(data(browser.send(s"${path(id)}/de")).getString("title") == "Deutscher Titel")
   }
@@ -249,15 +291,17 @@ class PostTranslationSpec extends AnyFunSuite with BeforeAndAfterAll {
     val token = browser.token
     val pool = Executors.newFixedThreadPool(2)
     try {
-      val jobs = (1 to 2).map(_ => pool.submit(new Callable[HttpResponse[String]] {
-        override def call() = browser.send(s"${path(id)}/de", "POST", input(), token)
-      }))
+      val jobs = (1 to 2).map(_ =>
+        pool.submit(new Callable[HttpResponse[String]] {
+          override def call() = browser.send(s"${path(id)}/de", "POST", input(), token)
+        })
+      )
       assert(jobs.map(_.get().statusCode()).sorted == Seq(200, 409))
     } finally pool.close()
   }
   test("localized search, ordering, totals and page links use the selected text") {
     val browser = admin()
-    val marker = UUID.randomUUID().toString.take(8)
+    val marker = util.UUID.randomUUID().toString.take(8)
     val first = post(title = s"Z English $marker", summary = s"hiddenenglish$marker")
     val second = post(title = s"A English $marker")
     command(browser, first, create(browser, first, input(s"A Deutsch $marker")), "publish")
@@ -298,8 +342,11 @@ class PostTranslationSpec extends AnyFunSuite with BeforeAndAfterAll {
     command(browser, id, published, "retract")
     assert(visitor.send(s"media/$image").statusCode() == 404)
     val current = data(browser.send(s"${path(id)}/de"))
-    data(browser.write(s"${path(id)}/${current.getString("id")}", "PATCH",
-      s"""{"version":${version(current)},"content":"Kein Bild mehr"}"""))
+    data(browser.write(
+      s"${path(id)}/${current.getString("id")}",
+      "PATCH",
+      s"""{"version":${version(current)},"content":"Kein Bild mehr"}"""
+    ))
     val removed = browser.write("_test/media/cleanup?limit=100", "POST", "")
     assert(removed.statusCode() == 200 && removed.body() == "1")
   }

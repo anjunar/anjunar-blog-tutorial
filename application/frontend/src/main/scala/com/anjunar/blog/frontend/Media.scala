@@ -16,9 +16,10 @@ final class Media {
 
   @JsonIgnore()
   def source: String = {
-    require(id.get.matches("[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}"),
-      "Invalid image identity")
+    require(
+      id.get.matches("[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}"),
+      "Invalid image identity"
+    )
     s"/service/media/${id.get}"
   }
 }
-

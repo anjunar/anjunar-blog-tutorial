@@ -7,7 +7,10 @@ import scala.scalajs.js.URIUtils.encodeURIComponent
 
 final class BlogService(initial: InitialPageData = InitialPageData.live())(using ExecutionContext) {
   def list(search: PostSearch, signal: Option[dom.AbortSignal], locale: String = "en"): Future[BlogPostTable] =
-    initial.get[BlogPostTable](s"/service/blog/posts?${search.queryString(includeDefaults = true)}&locale=$locale", signal)
+    initial.get[BlogPostTable](
+      s"/service/blog/posts?${search.queryString(includeDefaults = true)}&locale=$locale",
+      signal
+    )
       .map { table =>
         require(table.size >= 0 && table.rows != null, "Invalid post table")
         table.rows.foreach(row => require(row != null && row.data != null, "Missing post data"))

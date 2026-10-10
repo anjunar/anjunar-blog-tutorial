@@ -28,7 +28,10 @@ class MediaWriteProbe extends WriterInterceptor {
       MediaWriteProbe.binaryWrites.incrementAndGet()
     }
     context.proceed()
-    if (transaction.active && uri.getPath.stripPrefix("/") == "editorial/media" && headers.getHeaderString("X-Test-Fail-Upload") == "true")
+    if (
+      transaction.active && uri.getPath.stripPrefix("/") == "editorial/media" &&
+      headers.getHeaderString("X-Test-Fail-Upload") == "true"
+    )
       throw new IOException("Intentional upload serialization failure")
   }
 }

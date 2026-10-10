@@ -10,15 +10,15 @@ enum EndpointPolicy {
   case Roles(names: Set[String])
 
   def allows(hasRole: String => Boolean): Boolean = this match {
-    case Public => true
-    case Denied => false
+    case Public       => true
+    case Denied       => false
     case Roles(names) => names.exists(hasRole)
   }
 
   def requireAccess(access: CallerAccess): Unit =
     if (!allows(access.hasRole)) this match {
       case Roles(_) if !access.authenticated => throw new NotAuthorizedException("Session")
-      case _ => throw new ForbiddenException()
+      case _                                 => throw new ForbiddenException()
     }
 }
 

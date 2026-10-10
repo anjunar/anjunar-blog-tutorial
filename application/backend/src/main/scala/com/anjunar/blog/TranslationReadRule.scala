@@ -15,7 +15,6 @@ import jakarta.validation.constraints.{AssertTrue, NotBlank, NotNull, Pattern, S
 import jakarta.persistence.{PrePersist, PreUpdate}
 import java.time.Instant
 import java.util
-import java.util.UUID
 import scala.compiletime.uninitialized
 
 @RequestScoped

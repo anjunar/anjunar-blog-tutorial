@@ -16,10 +16,12 @@ final class AccountService(using ExecutionContext) {
   def login(email: String, password: String): Future[SessionState] = {
     val command = JsonMapper.serialize(new LoginCommand(email, password))
     session().flatMap(current =>
-      HttpJson.post[SessionState]("/service/auth/login", command, current.csrfToken))
+      HttpJson.post[SessionState]("/service/auth/login", command, current.csrfToken)
+    )
   }
 
   def logout(): Future[SessionState] =
     session().flatMap(current =>
-      HttpJson.post[SessionState]("/service/auth/logout", js.Dynamic.literal(), current.csrfToken))
+      HttpJson.post[SessionState]("/service/auth/logout", js.Dynamic.literal(), current.csrfToken)
+    )
 }

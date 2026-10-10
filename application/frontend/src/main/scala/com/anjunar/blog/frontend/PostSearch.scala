@@ -2,8 +2,14 @@ package com.anjunar.blog.frontend
 
 import scala.scalajs.js.URIUtils.encodeURIComponent
 
-final case class PostSearch(query: String = "", status: String = "", sort: String = "newest",
-    offset: Int = 0, limit: Int = 20, editorial: Boolean = false) {
+final case class PostSearch(
+  query: String = "",
+  status: String = "",
+  sort: String = "newest",
+  offset: Int = 0,
+  limit: Int = 20,
+  editorial: Boolean = false
+) {
   def path: String = if (editorial) "/editorial" else "/"
   def filtered: Boolean = query.nonEmpty || status.nonEmpty
 
@@ -34,8 +40,10 @@ object PostSearch {
     val limit = read("limit").getOrElse("20").toIntOption.filter(value => value >= 1 && value <= 100)
     val invalidText = query.length > 100 || query.exists(c => c < ' ' || (c >= 127 && c <= 159))
     val statuses = if (editorial) Set("", "DRAFT", "PUBLISHED") else Set("", "PUBLISHED")
-    if (invalidText || !statuses.contains(status) ||
-        !Set("newest", "oldest", "title", "title-desc").contains(sort) || offset.isEmpty || limit.isEmpty)
+    if (
+      invalidText || !statuses.contains(status) ||
+      !Set("newest", "oldest", "title", "title-desc").contains(sort) || offset.isEmpty || limit.isEmpty
+    )
       throw new HttpFailure(400)
     PostSearch(query, status, sort, offset.get, limit.get, editorial)
   }

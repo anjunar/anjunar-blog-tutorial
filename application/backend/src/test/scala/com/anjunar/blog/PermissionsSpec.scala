@@ -10,7 +10,7 @@ import java.net.{CookieManager, CookiePolicy, InetAddress, ServerSocket, URI}
 import java.net.http.{HttpClient, HttpRequest, HttpResponse}
 import java.sql.DriverManager
 import java.time.Duration
-import java.util.UUID
+import java.util
 import java.util.concurrent.{Callable, Executors}
 import scala.collection.mutable
 import scala.jdk.CollectionConverters.*
@@ -19,7 +19,7 @@ import scala.util.Using
 class PermissionsSpec extends AnyFunSuite with BeforeAndAfterAll {
   private var server: UndertowCdiEmbeddedServer = null
   private var port = 0
-  private val owned = mutable.Buffer.empty[UUID]
+  private val owned = mutable.Buffer.empty[util.UUID]
   private val clients = mutable.Buffer.empty[HttpClient]
   private val password = "a long tutorial passphrase"
   private lazy val hash = PasswordHash.create(password)
@@ -31,7 +31,8 @@ class PermissionsSpec extends AnyFunSuite with BeforeAndAfterAll {
 
   private def freePort(): Int = {
     val socket = new ServerSocket(0, 1, InetAddress.getByName("127.0.0.1"))
-    try socket.getLocalPort finally socket.close()
+    try socket.getLocalPort
+    finally socket.close()
   }
 
   override protected def beforeAll(): Unit = {
@@ -58,13 +59,14 @@ class PermissionsSpec extends AnyFunSuite with BeforeAndAfterAll {
   }
 
   private def account(locked: Boolean = false): String = {
-    val id = UUID.randomUUID()
+    val id = util.UUID.randomUUID()
     val email = s"auth-$id@example.com"
     owned += id
     Using.resource(connection()) { connection =>
       Using.resource(connection.prepareStatement(
         """insert into public.blog_account (id, version, email, role, password_hash, authentication_version, locked)
-          |values (?, 0, ?, 'ADMIN', ?, 0, ?)""".stripMargin)) { query =>
+          |values (?, 0, ?, 'ADMIN', ?, 0, ?)""".stripMargin
+      )) { query =>
         query.setObject(1, id)
         query.setString(2, email)
         query.setString(3, hash)
@@ -79,9 +81,15 @@ class PermissionsSpec extends AnyFunSuite with BeforeAndAfterAll {
     val cookies = new CookieManager(null, CookiePolicy.ACCEPT_ALL)
     val client = HttpClient.newBuilder().cookieHandler(cookies).connectTimeout(Duration.ofSeconds(5)).build()
     clients += client
-    def cookie: String = cookies.getCookieStore.getCookies.asScala.find(_.getName == SecurityConfig.cookieName).get.getValue
-    def send(path: String, method: String = "GET", body: String = "", csrf: String = "",
-        extra: Map[String, String] = Map.empty): HttpResponse[String] = {
+    def cookie: String =
+      cookies.getCookieStore.getCookies.asScala.find(_.getName == SecurityConfig.cookieName).get.getValue
+    def send(
+      path: String,
+      method: String = "GET",
+      body: String = "",
+      csrf: String = "",
+      extra: Map[String, String] = Map.empty
+    ): HttpResponse[String] = {
       val builder = HttpRequest.newBuilder(URI.create(s"http://127.0.0.1:$port/service/$path"))
         .timeout(Duration.ofSeconds(20)).header("Accept", "application/json")
       if (csrf.nonEmpty) builder.header("X-CSRF-Token", csrf)
@@ -92,8 +100,12 @@ class PermissionsSpec extends AnyFunSuite with BeforeAndAfterAll {
     }
     def session(): JsonObject = json(send("auth/session"))
     def login(email: String, secret: String = password): HttpResponse[String] =
-      send("auth/login", "POST", new JsonObject().put("email", email).put("password", secret).encode(),
-        session().getString("csrfToken"))
+      send(
+        "auth/login",
+        "POST",
+        new JsonObject().put("email", email).put("password", secret).encode(),
+        session().getString("csrfToken")
+      )
   }
 
   private def json(response: HttpResponse[String]): JsonObject = {
@@ -101,14 +113,14 @@ class PermissionsSpec extends AnyFunSuite with BeforeAndAfterAll {
     JsonParser.parse(response.body()).asInstanceOf[JsonObject]
   }
 
-
-  private val posts = mutable.Buffer.empty[UUID]
-  private def draft(content: String = "A private body"): UUID = {
-    val id = UUID.randomUUID()
+  private val posts = mutable.Buffer.empty[util.UUID]
+  private def draft(content: String = "A private body"): util.UUID = {
+    val id = util.UUID.randomUUID()
     posts += id
     Using.resource(connection()) { c =>
       Using.resource(c.prepareStatement(
-        "insert into public.blog_post (id, version, slug, title, content, status) values (?, 0, ?, ?, ?, 'DRAFT')")) { q =>
+        "insert into public.blog_post (id, version, slug, title, content, status) values (?, 0, ?, ?, ?, 'DRAFT')"
+      )) { q =>
         q.setObject(1, id); q.setString(2, s"permission-$id")
         q.setString(3, s"Permission test $id"); q.setString(4, content); q.executeUpdate()
       }
@@ -121,7 +133,7 @@ class PermissionsSpec extends AnyFunSuite with BeforeAndAfterAll {
         q.setString(1, role); q.setString(2, email); q.executeUpdate()
       }
     }
-  private def path(id: UUID): String = s"editorial/posts/$id"
+  private def path(id: util.UUID): String = s"editorial/posts/$id"
   private def relations(value: JsonObject): Set[String] =
     Option(value.value.get("$links").asInstanceOf[JsonArray]).toSeq.flatMap(_.value.asScala)
       .map(_.asInstanceOf[JsonObject].getString("rel")).toSet
@@ -130,7 +142,7 @@ class PermissionsSpec extends AnyFunSuite with BeforeAndAfterAll {
     json(browser.login(account()))
     browser
   }
-  private def action(browser: Browser, id: UUID, name: String, extra: Map[String, String] = Map.empty) =
+  private def action(browser: Browser, id: util.UUID, name: String, extra: Map[String, String] = Map.empty) =
     browser.send(s"${path(id)}/$name", "POST", csrf = browser.session().getString("csrfToken"), extra = extra)
 
   test("anonymous and reader requests cannot enter editorial endpoints or forge commands") {
@@ -183,7 +195,7 @@ class PermissionsSpec extends AnyFunSuite with BeforeAndAfterAll {
     assert(relations(json(browser.send(path(id)))) == Set("self", "update", "translation"))
     assert(action(browser, id, "publish").statusCode() == 409)
     assert(browser.send("editorial/posts/not-a-uuid").statusCode() == 404)
-    assert(browser.send(path(UUID.randomUUID())).statusCode() == 404)
+    assert(browser.send(path(util.UUID.randomUUID())).statusCode() == 404)
   }
 
   test("editorial collection validates bounds and returns graph projections with page links") {
@@ -250,15 +262,19 @@ class PermissionsSpec extends AnyFunSuite with BeforeAndAfterAll {
 
   test("mapper rules resolve the current caller and keep lifecycle fields read-only") {
     val anonymous = new Browser()
-    assert(anonymous.send("_test/permissions", extra = Map("Accept" -> "text/plain")).body() == "Original title|-1|DRAFT|null")
+    assert(anonymous.send("_test/permissions", extra = Map("Accept" -> "text/plain")).body() ==
+      "Original title|-1|DRAFT|null")
     val email = account()
     changeRole(email, "READER")
     val reader = new Browser()
     json(reader.login(email))
-    assert(reader.send("_test/permissions", extra = Map("Accept" -> "text/plain")).body() == "Original title|-1|DRAFT|null")
+    assert(reader.send("_test/permissions", extra = Map("Accept" -> "text/plain")).body() ==
+      "Original title|-1|DRAFT|null")
     val browser = admin()
-    assert(browser.send("_test/permissions", extra = Map("Accept" -> "text/plain")).body() == "Changed title|-1|DRAFT|null")
+    assert(browser.send("_test/permissions", extra = Map("Accept" -> "text/plain")).body() ==
+      "Changed title|-1|DRAFT|null")
     // A cached schema must not retain the previous administrator's rights.
-    assert(anonymous.send("_test/permissions", extra = Map("Accept" -> "text/plain")).body() == "Original title|-1|DRAFT|null")
+    assert(anonymous.send("_test/permissions", extra = Map("Accept" -> "text/plain")).body() ==
+      "Original title|-1|DRAFT|null")
   }
 }

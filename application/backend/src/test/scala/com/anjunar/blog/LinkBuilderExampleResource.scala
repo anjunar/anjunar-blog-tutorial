@@ -5,7 +5,7 @@ import jakarta.annotation.security.{DenyAll, PermitAll}
 import jakarta.ws.rs.{GET, PATCH, POST, Path, PathParam}
 import org.scalatest.funsuite.AnyFunSuite
 
-import java.util.UUID
+import java.util
 
 @Path("/_test/link-builder/{postId}")
 @PermitAll
@@ -14,8 +14,10 @@ class LinkBuilderExampleResource {
   def read(@PathParam("postId") post: BlogPost): Unit = throw new AssertionError("A link must not call the endpoint")
 
   @PATCH @Path("/{id}")
-  def update(@PathParam("postId") post: BlogPost,
-      @PathParam("id") change: PreparedChange[BlogPostTranslation]): Unit =
+  def update(
+    @PathParam("postId") post: BlogPost,
+    @PathParam("id") change: PreparedChange[BlogPostTranslation]
+  ): Unit =
     throw new AssertionError("A link must not apply a change")
 
   @POST @Path("/de")
@@ -25,4 +27,3 @@ class LinkBuilderExampleResource {
   @GET @Path("/hidden") @DenyAll
   def hidden(@PathParam("postId") post: BlogPost): Unit = ()
 }
-

@@ -9,19 +9,18 @@ import jakarta.ws.rs.core.UriBuilder
 
 import java.lang
 import java.util
-import java.util.Locale
 import scala.annotation.meta.field
 import scala.jdk.CollectionConverters.*
 
 final case class BlogPostSearch(
-    @(JsonbProperty @field) query: String,
-    @(JsonbProperty @field) @(RestPredicate @field)(classOf[BlogPostSearch.StatusPredicate])
-    status: Option[BlogPostStatus],
-    @(JsonbProperty @field) @(RestSort @field)(classOf[BlogPostSearch.PostSort])
-    sort: String,
-    offset: Int,
-    override val limit: Int,
-    locale: String = "en"
+  @(JsonbProperty @field) query: String,
+  @(JsonbProperty @field) @(RestPredicate @field)(classOf[BlogPostSearch.StatusPredicate])
+  status: Option[BlogPostStatus],
+  @(JsonbProperty @field) @(RestSort @field)(classOf[BlogPostSearch.PostSort])
+  sort: String,
+  offset: Int,
+  override val limit: Int,
+  locale: String = "en"
 ) extends AbstractSearch {
   @JsonbProperty @RestPredicate(classOf[BlogPostSearch.QueryPredicate])
   val textFilter: BlogPostSearch.TextFilter = BlogPostSearch.TextFilter(query, locale)
@@ -55,7 +54,7 @@ object BlogPostSearch {
           builder.like(builder.lower(post.get(BlogPost.schema.slug)), pattern, '!'),
           builder.like(builder.lower(fields.summary), pattern, '!')
         ))
-        val literal = context.value.text.toLowerCase(Locale.ROOT)
+        val literal = context.value.text.toLowerCase(util.Locale.ROOT)
           .replace("!", "!!").replace("%", "!%").replace("_", "!_")
         context.parameters.put(context.name, s"%$literal%")
       }
@@ -80,14 +79,16 @@ object BlogPostSearch {
       val title = builder.lower(LocalizedPostFields(post, builder, context.value.locale).title)
       val publication = post.get(BlogPost.schema.publishedAt)
       val primary = context.value.sort match {
-        case "title" => Seq(builder.asc(title))
-        case "title-desc" => Seq(builder.desc(title))
+        case "title"                           => Seq(builder.asc(title))
+        case "title-desc"                      => Seq(builder.desc(title))
         case direction @ ("oldest" | "newest") =>
           // Keep drafts after dated posts in both directions.
           val undated = builder.selectCase[lang.Integer]()
             .when(builder.isNull(publication), 1).otherwise(0)
-          Seq(builder.asc(undated),
-            if (direction == "oldest") builder.asc(publication) else builder.desc(publication))
+          Seq(
+            builder.asc(undated),
+            if (direction == "oldest") builder.asc(publication) else builder.desc(publication)
+          )
         case _ => throw new IllegalArgumentException("Unsupported post sort")
       }
       (primary :+ builder.asc(post.get(BlogPost.schema.id))).asJava

@@ -5,7 +5,7 @@ import jakarta.persistence.criteria.{Expression, Predicate}
 import java.util
 
 final case class HibernateSearchContextResult(
-    selection: util.List[Expression[?]],
-    predicates: util.List[Predicate],
-    parameters: util.Map[String, Any]
+  selection: util.List[Expression[?]],
+  predicates: util.List[Predicate],
+  parameters: util.Map[String, Any]
 )

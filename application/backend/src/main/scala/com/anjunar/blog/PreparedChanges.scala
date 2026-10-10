@@ -12,18 +12,19 @@ import jakarta.validation.Validator
 import jakarta.ws.rs.{ForbiddenException, NotFoundException}
 
 import java.lang.reflect.{ParameterizedType, Type}
-import java.util.UUID
+import java.util
 import scala.compiletime.uninitialized
 import scala.jdk.CollectionConverters.*
 
 object PreparedChanges {
-  private val types: Set[Class[?]] = Set(classOf[BlogPost], classOf[BlogTag], classOf[Account], classOf[BlogPostTranslation])
+  private val types: Set[Class[?]] =
+    Set(classOf[BlogPost], classOf[BlogTag], classOf[Account], classOf[BlogPostTranslation])
 
   def entityClass(genericType: Type): Option[Class[? <: EntityProvider]] = genericType match {
     case value: ParameterizedType if value.getActualTypeArguments.length == 1 =>
       value.getActualTypeArguments.head match {
         case clazz: Class[?] if types.contains(clazz) => Some(clazz.asSubclass(classOf[EntityProvider]))
-        case _ => None
+        case _                                        => None
       }
     case _ => None
   }
@@ -76,14 +77,15 @@ class PreparedChanges {
 
   def update[E <: EntityProvider](id: String, json: JsonObject, clazz: Class[E]): PreparedChange[E] = {
     if (!caller.administrator) throw new ForbiddenException()
-    val uuid = try UUID.fromString(id) catch { case _: IllegalArgumentException => throw new NotFoundException() }
+    val uuid = try util.UUID.fromString(id)
+    catch { case _: IllegalArgumentException => throw new NotFoundException() }
     // Lock while loading, before comparing versions, so concurrent requests see the latest row.
     val entity = manager.find(clazz, uuid, LockModeType.PESSIMISTIC_WRITE)
     if (entity == null) throw new NotFoundException()
     entity match {
-      case post: BlogPost if !access.canRead(post) => throw new NotFoundException()
+      case post: BlogPost if !access.canRead(post)                       => throw new NotFoundException()
       case account: Account if account.locked || account.role != "ADMIN" => throw new NotFoundException()
-      case _ => ()
+      case _                                                             => ()
     }
     EntityVersions.requireCurrent(entity, json)
     prepare(json, entity, clazz)
@@ -92,9 +94,10 @@ class PreparedChanges {
   private def prepare[E <: EntityProvider](json: JsonObject, entity: E, clazz: Class[E]): PreparedChange[E] = {
     val schema = PreparedChanges.schema(clazz)
     val fields = if (clazz == classOf[Account]) Set("id", "version", "displayName")
-      else if (clazz == classOf[BlogPost]) schema.properties.keySet.toSet -- Set("inlineMedia", "translations", "translation", "contentLocale", "availableLocales")
-      else if (clazz == classOf[BlogPostTranslation]) Set("id", "version", "title", "summary", "content")
-      else schema.properties.keySet.toSet
+    else if (clazz == classOf[BlogPost]) schema.properties.keySet.toSet --
+      Set("inlineMedia", "translations", "translation", "contentLocale", "availableLocales")
+    else if (clazz == classOf[BlogPostTranslation]) Set("id", "version", "title", "summary", "content")
+    else schema.properties.keySet.toSet
     val unknown = json.value.keySet().asScala.toSet -- fields - "@type"
     if (unknown.nonEmpty) Problem.invalidField(unknown.toSeq.sorted.head, "Unknown entity field.")
     Option(json.value.get("@type")).foreach {
@@ -102,8 +105,8 @@ class PreparedChanges {
       case _ => Problem.invalidField("@type", s"Expected ${clazz.getSimpleName}.")
     }
     Option(json.value.get("id")).foreach {
-      case _: JsonNull if entity.id == null => ()
-      case value: JsonString if entity.id == null && value.value.isEmpty => ()
+      case _: JsonNull if entity.id == null                                            => ()
+      case value: JsonString if entity.id == null && value.value.isEmpty               => ()
       case value: JsonString if entity.id != null && value.value == entity.id.toString => ()
       case _ => Problem.invalidField("id", "The request cannot change the entity identity.")
     }
@@ -113,12 +116,18 @@ class PreparedChanges {
       if (fields.contains(name) && entityType.getAttribute(name).getJavaType == classOf[String])
         value match {
           case _: JsonString | _: JsonNull => ()
-          case _ => Problem.invalidField(name, "Expected a string or null.")
+          case _                           => Problem.invalidField(name, "Expected a string or null.")
         }
     }
     if (clazz == classOf[BlogPost]) references.checkPostInput(json)
-    JsonMapper.prepare(json, entity, TypeResolver.resolve(clazz),
-      manager.getEntityGraph(PreparedChanges.graph(clazz)), references,
-      [T] => (rule: Class[T]) => RuntimeContext.bean(rule), validator)
+    JsonMapper.prepare(
+      json,
+      entity,
+      TypeResolver.resolve(clazz),
+      manager.getEntityGraph(PreparedChanges.graph(clazz)),
+      references,
+      [T] => (rule: Class[T]) => RuntimeContext.bean(rule),
+      validator
+    )
   }
 }

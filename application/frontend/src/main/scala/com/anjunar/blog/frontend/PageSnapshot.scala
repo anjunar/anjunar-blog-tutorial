@@ -12,11 +12,10 @@ import scala.util.control.NonFatal
 
 // This describes one public HTTP response, not another copy of the entity model.
 final class PageSnapshot(
-    var format: Int = 1,
-    var url: String = "",
-    var request: String = "",
-    var status: Int = 0,
-    var contentType: String = "",
-    var body: String = ""
+  var format: Int = 1,
+  var url: String = "",
+  var request: String = "",
+  var status: Int = 0,
+  var contentType: String = "",
+  var body: String = ""
 )
-

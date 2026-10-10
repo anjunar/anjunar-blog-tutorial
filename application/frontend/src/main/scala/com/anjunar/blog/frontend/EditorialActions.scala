@@ -24,7 +24,7 @@ final class EditorialActions(initial: BlogPostData, service: EditorialService)(u
               current.set(new BlogPostData(current.get.data, Seq.empty))
               error.set(failure match {
                 case http: HttpFailure => http.status
-                case _ => 503
+                case _                 => 503
               })
           }
           busy.set(false)

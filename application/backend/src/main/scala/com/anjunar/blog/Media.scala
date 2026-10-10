@@ -10,22 +10,29 @@ import jakarta.persistence.{Access, AccessType, Column, Entity, GeneratedValue, 
 import jakarta.validation.constraints.{NotBlank, NotNull, Size}
 
 import java.time.Instant
-import java.util.UUID
+import java.util
 
 @Entity
 @SchemaId("ad181000")
 @Access(AccessType.FIELD)
 @Table(name = "blog_media", schema = "public")
-@NamedEntityGraph(name = "Media.detail", attributeNodes = Array(
-  new NamedAttributeNode("id"), new NamedAttributeNode("version"), new NamedAttributeNode("name"),
-  new NamedAttributeNode("contentType"), new NamedAttributeNode("width"),
-  new NamedAttributeNode("height"), new NamedAttributeNode("byteSize")
-))
+@NamedEntityGraph(
+  name = "Media.detail",
+  attributeNodes = Array(
+    new NamedAttributeNode("id"),
+    new NamedAttributeNode("version"),
+    new NamedAttributeNode("name"),
+    new NamedAttributeNode("contentType"),
+    new NamedAttributeNode("width"),
+    new NamedAttributeNode("height"),
+    new NamedAttributeNode("byteSize")
+  )
+)
 class Media extends EntityProvider {
   @Id @GeneratedValue(strategy = GenerationType.UUID)
   @Column(nullable = false, updatable = false)
   @SchemaId("ad181001") @JsonbProperty
-  var id: UUID = null
+  var id: util.UUID = null
 
   @Version @Column(nullable = false)
   @SchemaId("ad181002") @JsonbProperty
@@ -54,7 +61,7 @@ class Media extends EntityProvider {
 
   @NotNull @Column(name = "owner_id", nullable = false, updatable = false)
   @SchemaId("ad181009") @JsonbTransient
-  var ownerId: UUID = null
+  var ownerId: util.UUID = null
 
   // PostgreSQL bytea stays in the same transaction as metadata; it is never JSON.
   @NotNull @Column(nullable = false, columnDefinition = "bytea")
@@ -64,7 +71,7 @@ class Media extends EntityProvider {
 
 object Media extends SchemaProvider[Media.Schema] {
   class Schema extends EntitySchema[Media](RuntimeContext.entityManager()) {
-    val id: SingularProperty[Media, UUID] = reference(_.id)
+    val id: SingularProperty[Media, util.UUID] = reference(_.id)
     val version: SingularProperty[Media, Long] = reference(_.version)
     val name: SingularProperty[Media, String] = reference(_.name)
     val contentType: SingularProperty[Media, String] = reference(_.contentType)
@@ -72,6 +79,6 @@ object Media extends SchemaProvider[Media.Schema] {
     val height: SingularProperty[Media, Int] = reference(_.height)
     val byteSize: SingularProperty[Media, Long] = reference(_.byteSize)
     val createdAt: SingularProperty[Media, Instant] = reference(_.createdAt)
-    val ownerId: SingularProperty[Media, UUID] = reference(_.ownerId)
+    val ownerId: SingularProperty[Media, util.UUID] = reference(_.ownerId)
   }
 }

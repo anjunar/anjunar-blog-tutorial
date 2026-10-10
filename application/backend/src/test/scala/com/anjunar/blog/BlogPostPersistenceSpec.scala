@@ -14,7 +14,7 @@ import org.scalatest.funsuite.AnyFunSuite
 
 import java.sql.{DriverManager, SQLException}
 import java.time.{Instant, ZoneOffset}
-import java.util.UUID
+import java.util
 import scala.collection.mutable
 import scala.jdk.CollectionConverters.*
 import scala.util.Using
@@ -23,7 +23,7 @@ import scala.util.control.NonFatal
 class BlogPostPersistenceSpec extends AnyFunSuite with BeforeAndAfterAll {
   private var container: SeContainer = null
   private var persistence: Persistence = null
-  private val ownedIds = mutable.Set.empty[UUID]
+  private val ownedIds = mutable.Set.empty[util.UUID]
   private var initialized = false
 
   override protected def beforeAll(): Unit = {
@@ -67,7 +67,7 @@ class BlogPostPersistenceSpec extends AnyFunSuite with BeforeAndAfterAll {
 
   private def draft(): BlogPost = {
     val post = new BlogPost()
-    post.slug = s"post-${UUID.randomUUID()}"
+    post.slug = s"post-${util.UUID.randomUUID()}"
     post.title = "Our first post"
     post.content = "The first paragraph."
     post
@@ -82,12 +82,20 @@ class BlogPostPersistenceSpec extends AnyFunSuite with BeforeAndAfterAll {
   private def savedDraft(): BlogPost =
     inTransaction()(manager => persist(manager, draft()))
 
-  private def load(id: UUID): BlogPost =
+  private def load(id: util.UUID): BlogPost =
     inTransaction(readOnly = true)(_.find(classOf[BlogPost], id))
 
   test("CDI discovers entity classes without making their instances injectable") {
     val registry = container.select(classOf[EntityRegistry]).get()
-    assert(registry.entityClasses.toSet == Set(classOf[BlogPost], classOf[BlogTag], classOf[Media], classOf[Account], classOf[AccountToken], classOf[BlogPostTranslation], classOf[EntityDiscoveryProbe]))
+    assert(registry.entityClasses.toSet == Set(
+      classOf[BlogPost],
+      classOf[BlogTag],
+      classOf[Media],
+      classOf[Account],
+      classOf[AccountToken],
+      classOf[BlogPostTranslation],
+      classOf[EntityDiscoveryProbe]
+    ))
     assert(container.select(classOf[BlogPost]).isUnsatisfied)
     assert(container.select(classOf[EntityDiscoveryProbe]).isUnsatisfied)
   }
@@ -240,11 +248,12 @@ class BlogPostPersistenceSpec extends AnyFunSuite with BeforeAndAfterAll {
   test("the database rejects a published row without a publication time even outside Hibernate") {
     val config = DatabaseConfig.load()
     val connection = DriverManager.getConnection(config.url, config.user, config.password)
-    val id = UUID.randomUUID()
+    val id = util.UUID.randomUUID()
     ownedIds += id
     try {
       val command = connection.prepareStatement(
-        "insert into public.blog_post (id, version, slug, title, content, status) values (?, 0, ?, ?, ?, 'PUBLISHED')")
+        "insert into public.blog_post (id, version, slug, title, content, status) values (?, 0, ?, ?, ?, 'PUBLISHED')"
+      )
       try {
         command.setObject(1, id)
         command.setString(2, s"post-$id")
@@ -284,7 +293,7 @@ class BlogPostPersistenceSpec extends AnyFunSuite with BeforeAndAfterAll {
     inTransaction(readOnly = true) { manager =>
       assert(BlogPost.findPublishedBySlug(published.slug)(using manager).map(_.id).contains(published.id))
       assert(BlogPost.findPublishedBySlug(unpublished.slug)(using manager).isEmpty)
-      assert(BlogPost.findPublishedBySlug(s"missing-${UUID.randomUUID()}")(using manager).isEmpty)
+      assert(BlogPost.findPublishedBySlug(s"missing-${util.UUID.randomUUID()}")(using manager).isEmpty)
     }
   }
 
@@ -292,7 +301,10 @@ class BlogPostPersistenceSpec extends AnyFunSuite with BeforeAndAfterAll {
 
   private def json(post: BlogPost): JsonObject =
     JsonParser.parse(JsonMapper.serialize(
-      post, TypeResolver.resolve(classOf[BlogPost]), null, constructRule
+      post,
+      TypeResolver.resolve(classOf[BlogPost]),
+      null,
+      constructRule
     )).asInstanceOf[JsonObject]
 
   test("the mapper publishes every populated schema field and preserves the Instant precision") {
@@ -306,7 +318,17 @@ class BlogPostPersistenceSpec extends AnyFunSuite with BeforeAndAfterAll {
       val loaded = manager.find(classOf[BlogPost], saved.id)
       val output = json(loaded)
       assert(output.value.keySet().asScala.toSet == Set(
-        "@type", "id", "version", "slug", "title", "content", "contentFormat", "summary", "status", "publishedAt"))
+        "@type",
+        "id",
+        "version",
+        "slug",
+        "title",
+        "content",
+        "contentFormat",
+        "summary",
+        "status",
+        "publishedAt"
+      ))
       assert(output.getString("@type") == "BlogPost")
       assert(output.getString("id") == saved.id.toString)
       assert(output.value.get("version").value == saved.version.toString)
@@ -335,14 +357,22 @@ class BlogPostPersistenceSpec extends AnyFunSuite with BeforeAndAfterAll {
       val post = manager.find(classOf[BlogPost], saved.id)
       val input = JsonParser.parse(
         """{"title":"Unauthorized title","summary":"Unauthorized summary","version":999,
-          |"status":"PUBLISHED","publishedAt":"2026-09-27T10:00:00Z"}""".stripMargin)
+          |"status":"PUBLISHED","publishedAt":"2026-09-27T10:00:00Z"}""".stripMargin
+      )
       val noReferences = new EntityLoader {
-        override def load(id: UUID, clazz: Class[?]): Any =
+        override def load(id: util.UUID, clazz: Class[?]): Any =
           throw new AssertionError("This scalar input must not load references")
       }
       Using.resource(Validation.buildDefaultValidatorFactory()) { factory =>
-        JsonMapper.deserialize(input, post, TypeResolver.resolve(classOf[BlogPost]),
-          null, noReferences, constructRule, factory.getValidator)
+        JsonMapper.deserialize(
+          input,
+          post,
+          TypeResolver.resolve(classOf[BlogPost]),
+          null,
+          noReferences,
+          constructRule,
+          factory.getValidator
+        )
       }
       assert(post.title == saved.title)
       assert(post.summary == null)

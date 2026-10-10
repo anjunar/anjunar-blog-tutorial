@@ -22,20 +22,34 @@ class MapperMessageBodyWriter extends MessageBodyWriter[Any] {
   @Context
   var resource: ResourceInfo = uninitialized
 
-  override def isWriteable(clazz: Class[?], genericType: Type,
-      annotations: Array[Annotation], mediaType: MediaType): Boolean =
+  override def isWriteable(
+    clazz: Class[?],
+    genericType: Type,
+    annotations: Array[Annotation],
+    mediaType: MediaType
+  ): Boolean =
     classOf[DTO].isAssignableFrom(clazz)
 
-  override def writeTo(body: Any, clazz: Class[?], genericType: Type,
-      annotations: Array[Annotation], mediaType: MediaType,
-      headers: MultivaluedMap[String, Object], stream: OutputStream): Unit = {
+  override def writeTo(
+    body: Any,
+    clazz: Class[?],
+    genericType: Type,
+    annotations: Array[Annotation],
+    mediaType: MediaType,
+    headers: MultivaluedMap[String, Object],
+    stream: OutputStream
+  ): Unit = {
     val annotation = resource.getResourceMethod.getAnnotation(classOf[EntityGraph])
     val graph =
       if (annotation == null) null
       else RuntimeContext.entityManager().getEntityGraph(annotation.value())
     val targetType = if (genericType == null) clazz else genericType
-    val json = JsonMapper.serialize(body, TypeResolver.resolve(targetType), graph,
-      [T] => (ruleClass: Class[T]) => RuntimeContext.bean(ruleClass))
+    val json = JsonMapper.serialize(
+      body,
+      TypeResolver.resolve(targetType),
+      graph,
+      [T] => (ruleClass: Class[T]) => RuntimeContext.bean(ruleClass)
+    )
     stream.write(json.getBytes(StandardCharsets.UTF_8))
   }
 }

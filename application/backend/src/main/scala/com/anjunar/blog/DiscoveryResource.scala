@@ -33,5 +33,6 @@ class DiscoveryResource {
   }
 
   @GET @Path("/robots") @Produces(Array("text/plain"))
-  def robots(): Response = response(s"User-agent: *\nAllow: /\nSitemap: $origin/sitemap.xml\n", "text/plain; charset=UTF-8")
+  def robots(): Response =
+    response(s"User-agent: *\nAllow: /\nSitemap: $origin/sitemap.xml\n", "text/plain; charset=UTF-8")
 }

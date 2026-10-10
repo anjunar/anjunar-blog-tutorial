@@ -9,4 +9,3 @@ import scala.scalajs.js
 import scala.util.{Failure, Success}
 
 final class RecoveryResult(var outcome: String = "")
-

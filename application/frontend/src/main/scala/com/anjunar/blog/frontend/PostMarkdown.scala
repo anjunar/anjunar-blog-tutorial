@@ -6,12 +6,13 @@ import ui.editor.{MediaReference, MediaUploader, MediaUrlPolicy, UploadedMediaRe
 import scala.concurrent.{ExecutionContext, Future}
 
 object PostMarkdown {
-  private val imagePath = "^/service/media/([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})$".r
+  private val imagePath =
+    "^/service/media/([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})$".r
 
   val mediaPolicy: MediaUrlPolicy = new MediaUrlPolicy {
     def resolve(source: String): Option[MediaReference] = Option(source).flatMap {
       case imagePath(id) => Some(MediaReference(source, Some(id)))
-      case _ => None
+      case _             => None
     }
   }
 
@@ -24,9 +25,9 @@ object PostMarkdown {
   def fromPlainText(value: String): String = Option(value).getOrElse("")
     .replace("\r\n", "\n").replace("\r", "\n")
     .flatMap {
-      case '&' => "&amp;"
-      case '<' => "&lt;"
-      case '>' => "&gt;"
+      case '&'       => "&amp;"
+      case '<'       => "&lt;"
+      case '>'       => "&gt;"
       case character =>
         if ("\\`*_{}[]()#+.!|~=-".contains(character)) "\\" + character else character.toString
     }

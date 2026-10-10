@@ -34,8 +34,18 @@ class PostSearchSpec extends AnyFunSuite {
   }
 
   test("malformed routes fail before issuing an HTTP request") {
-    for ((key, value) <- Seq("offset" -> "-1", "offset" -> "2147483648", "limit" -> "0",
-      "limit" -> "101", "sort" -> "content", "status" -> "DRAFT", "q" -> ("a" * 101), "q" -> "a\u0000b")) {
+    for (
+      (key, value) <- Seq(
+        "offset" -> "-1",
+        "offset" -> "2147483648",
+        "limit" -> "0",
+        "limit" -> "101",
+        "sort" -> "content",
+        "status" -> "DRAFT",
+        "q" -> ("a" * 101),
+        "q" -> "a\u0000b"
+      )
+    ) {
       assert(intercept[HttpFailure](parse(key -> value)()).status == 400)
     }
     assert(parse("status" -> "DRAFT")(editorial = true).status == "DRAFT")

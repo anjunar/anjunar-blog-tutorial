@@ -4,9 +4,8 @@ import org.commonmark.node.{Code, FencedCodeBlock, HtmlBlock, HtmlInline, Image,
 import org.commonmark.parser.Parser
 
 import java.net.URI
-import java.util.{Locale, UUID}
+import java.util
 import scala.collection.mutable
 import scala.util.control.NonFatal
 
-final case class DocumentInfo(images: Set[UUID], hasContent: Boolean)
-
+final case class DocumentInfo(images: Set[util.UUID], hasContent: Boolean)

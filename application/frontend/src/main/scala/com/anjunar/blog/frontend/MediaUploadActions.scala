@@ -6,8 +6,9 @@ import ui.core.state.Property
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
 
-final class MediaUploadActions(post: BlogPost, send: (dom.File, dom.AbortSignal) => Future[Media])
-    (using ExecutionContext) {
+final class MediaUploadActions(post: BlogPost, send: (dom.File, dom.AbortSignal) => Future[Media])(using
+  ExecutionContext
+) {
   val busy: Property[Boolean] = Property(false)
   val error: Property[Option[Int]] = Property(None)
   private var generation = 0

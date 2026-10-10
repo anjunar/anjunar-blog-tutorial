@@ -27,8 +27,14 @@ class EditorialTagsResource {
   @GET @EntityGraph("BlogTag.detail")
   def list(@BeanParam parameters: CatalogParams): Table[Data[BlogTag]] = {
     val context = queries.searchContext(TagSearch(index = parameters.start, limit = parameters.size))
-    val rows = queries.entities(parameters.start, parameters.size, classOf[BlogTag], classOf[BlogTag],
-      context, (query, root, _, _) => query.select(root)).asScala.map(result).asJava
+    val rows = queries.entities(
+      parameters.start,
+      parameters.size,
+      classOf[BlogTag],
+      classOf[BlogTag],
+      context,
+      (query, root, _, _) => query.select(root)
+    ).asScala.map(result).asJava
     val total = queries.count(classOf[BlogTag], context)
     new Table(rows, total, parameters.links("/service/editorial/tags", total, create = true))
   }
@@ -60,14 +66,21 @@ class EditorialTagsResource {
     val other = query.from(classOf[BlogTag])
     val sameSlug = builder.equal(other.get(BlogTag.schema.slug), tag.slug)
     val conditions = if (tag.id == null) Seq(sameSlug)
-      else Seq(sameSlug, builder.notEqual(other.get(BlogTag.schema.id), tag.id))
+    else Seq(sameSlug, builder.notEqual(other.get(BlogTag.schema.id), tag.id))
     query.select(builder.count(other)).where(conditions*)
     if (manager.createQuery(query).setFlushMode(FlushModeType.COMMIT).getSingleResult.longValue() > 0)
-      throw new ApiProblem(409, "This slug is already used by another tag.", Problem.conflict,
-        Seq(new ErrorRequest(util.List.of[Any]("slug"), "Choose an unused slug.")))
+      throw new ApiProblem(
+        409,
+        "This slug is already used by another tag.",
+        Problem.conflict,
+        Seq(new ErrorRequest(util.List.of[Any]("slug"), "Choose an unused slug."))
+      )
   }
 
   private def result(tag: BlogTag): Data[BlogTag] =
-    new Data(tag, Schema.forGraph(BlogTag.schema, manager.getEntityGraph("BlogTag.detail")),
-      util.List.of(new Link("update", s"/service/editorial/tags/${tag.id}", "PATCH", "BlogTag")))
+    new Data(
+      tag,
+      Schema.forGraph(BlogTag.schema, manager.getEntityGraph("BlogTag.detail")),
+      util.List.of(new Link("update", s"/service/editorial/tags/${tag.id}", "PATCH", "BlogTag"))
+    )
 }

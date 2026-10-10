@@ -36,13 +36,17 @@ final class PostPage(post: BlogPost, requestedLocale: String = "en") extends Abs
         text(post.publishedAt.map(_.fold("")(_.take(10)))) {}
       }
       if (requestedLocale != post.contentLocale.get) {
-        paragraph { classes = "translation-fallback"; text(i18n"This article is available in English. A German translation has not been published yet.") {} }
+        paragraph {
+          classes = "translation-fallback";
+          text(i18n"This article is available in English. A German translation has not been published yet.") {}
+        }
       }
       heading(1) { id = "post-title"; lang = post.contentLocale.get; text(titleValue) {} }
       paragraph {
         classes = "post-author"
         val authorName = post.author.flatMap(account =>
-          if (account == null) Property("") else account.displayName)
+          if (account == null) Property("") else account.displayName
+        )
         val hasName = authorName.map(name => Option(name).exists(value => !value.isBlank))
         when(hasName) { text(authorName) {} }
         when(hasName.map(!_)) { text(i18n"Editorial team") {} }
@@ -52,7 +56,10 @@ final class PostPage(post: BlogPost, requestedLocale: String = "en") extends Abs
         foreach(post.tags) { tag => paragraph { classes = "post-tag"; text(tag.name) {} } }
       }
       if (Option(summaryValue.get).exists(_.nonEmpty)) {
-        paragraph { classes = "detail-summary"; lang = post.contentLocale.get; text(summaryValue.map(value => Option(value).getOrElse(""))) {} }
+        paragraph {
+          classes = "detail-summary"; lang = post.contentLocale.get;
+          text(summaryValue.map(value => Option(value).getOrElse(""))) {}
+        }
       }
       when(post.coverImage.map(_ != null)) {
         Image.image { picture ?=>

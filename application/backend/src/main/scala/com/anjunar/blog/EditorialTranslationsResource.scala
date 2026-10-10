@@ -31,9 +31,13 @@ class EditorialTranslationsResource {
 
   @POST @Path("/de") @Consumes(Array(MediaType.APPLICATION_JSON))
   @EntityGraph("BlogPostTranslation.detail")
-  def create(@PathParam("postId") post: BlogPost, change: PreparedChange[BlogPostTranslation]): Data[BlogPostTranslation] = {
+  def create(
+    @PathParam("postId") post: BlogPost,
+    change: PreparedChange[BlogPostTranslation]
+  ): Data[BlogPostTranslation] = {
     manager.lock(post, LockModeType.PESSIMISTIC_WRITE)
-    if (find(post).nonEmpty) throw new ApiProblem(409, "This translation already exists. Reload before editing.", Problem.conflict)
+    if (find(post).nonEmpty)
+      throw new ApiProblem(409, "This translation already exists. Reload before editing.", Problem.conflict)
     change.getEntity().post = post
     val translation = change.applyChanges()
     media.synchronize(translation)
@@ -43,8 +47,10 @@ class EditorialTranslationsResource {
 
   @PATCH @Path("/{id}") @Consumes(Array(MediaType.APPLICATION_JSON))
   @EntityGraph("BlogPostTranslation.detail")
-  def update(@PathParam("postId") post: BlogPost,
-      @PathParam("id") change: PreparedChange[BlogPostTranslation]): Data[BlogPostTranslation] = {
+  def update(
+    @PathParam("postId") post: BlogPost,
+    @PathParam("id") change: PreparedChange[BlogPostTranslation]
+  ): Data[BlogPostTranslation] = {
     val translation = change.getEntity()
     if (translation.post.id != post.id) throw new NotFoundException()
     change.applyChanges()
@@ -54,8 +60,10 @@ class EditorialTranslationsResource {
 
   @POST @Path("/{id}/publish") @Consumes(Array(MediaType.APPLICATION_JSON))
   @EntityGraph("BlogPostTranslation.detail")
-  def publish(@PathParam("postId") post: BlogPost,
-      @PathParam("id") change: PreparedChange[BlogPostTranslation]): Data[BlogPostTranslation] = {
+  def publish(
+    @PathParam("postId") post: BlogPost,
+    @PathParam("id") change: PreparedChange[BlogPostTranslation]
+  ): Data[BlogPostTranslation] = {
     val translation = change.getEntity()
     if (translation.post.id != post.id) throw new NotFoundException()
     if (translation.published || !PostDocument.hasContent(translation.content, "MARKDOWN"))
@@ -66,8 +74,10 @@ class EditorialTranslationsResource {
 
   @POST @Path("/{id}/retract") @Consumes(Array(MediaType.APPLICATION_JSON))
   @EntityGraph("BlogPostTranslation.detail")
-  def retract(@PathParam("postId") post: BlogPost,
-      @PathParam("id") change: PreparedChange[BlogPostTranslation]): Data[BlogPostTranslation] = {
+  def retract(
+    @PathParam("postId") post: BlogPost,
+    @PathParam("id") change: PreparedChange[BlogPostTranslation]
+  ): Data[BlogPostTranslation] = {
     val translation = change.getEntity()
     if (translation.post.id != post.id) throw new NotFoundException()
     if (!translation.published) throw new ApiProblem(409, "This translation is already a draft.", Problem.conflict)
@@ -81,7 +91,8 @@ class EditorialTranslationsResource {
     val translation = query.from(classOf[BlogPostTranslation])
     query.select(translation).where(
       builder.equal(translation.get(BlogPostTranslation.schema.post), post),
-      builder.equal(translation.get(BlogPostTranslation.schema.locale), "de"))
+      builder.equal(translation.get(BlogPostTranslation.schema.locale), "de")
+    )
     Option(manager.createQuery(query).getSingleResultOrNull)
   }
 
@@ -102,6 +113,10 @@ class EditorialTranslationsResource {
       Seq(update) ++ publication
     }
     val links = (Seq(self) ++ actions).filter(_ != null).asJava
-    new Data(value, Schema.forGraph(BlogPostTranslation.schema, manager.getEntityGraph("BlogPostTranslation.detail")), links)
+    new Data(
+      value,
+      Schema.forGraph(BlogPostTranslation.schema, manager.getEntityGraph("BlogPostTranslation.detail")),
+      links
+    )
   }
 }

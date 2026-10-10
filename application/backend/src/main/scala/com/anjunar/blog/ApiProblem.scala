@@ -8,7 +8,9 @@ import jakarta.ws.rs.core.Response
 import java.util
 import scala.jdk.CollectionConverters.*
 
-final class ApiProblem(val status: Int, val detail: String, val kind: String = "about:blank",
-    val errors: Seq[ErrorRequest] = Seq.empty)
-    extends WebApplicationException(Response.status(status).build())
-
+final class ApiProblem(
+  val status: Int,
+  val detail: String,
+  val kind: String = "about:blank",
+  val errors: Seq[ErrorRequest] = Seq.empty
+) extends WebApplicationException(Response.status(status).build())

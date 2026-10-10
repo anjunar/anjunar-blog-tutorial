@@ -10,7 +10,6 @@ import jakarta.ws.rs.core.{GenericEntity, MediaType, Response}
 
 import java.io.InputStream
 import java.util
-import java.util.UUID
 import scala.compiletime.uninitialized
 
 @Path("/media")
@@ -23,7 +22,8 @@ class MediaResource {
   @GET @Path("/{id}")
   @Produces(Array("image/jpeg", "image/png"))
   def image(@PathParam("id") rawId: String): Response = {
-    val id = try UUID.fromString(rawId) catch { case _: IllegalArgumentException => throw new NotFoundException() }
+    val id = try util.UUID.fromString(rawId)
+    catch { case _: IllegalArgumentException => throw new NotFoundException() }
     val media = manager.find(classOf[Media], id)
     if (media == null || (!lifecycle.referenced(media, publishedOnly = true) && !lifecycle.canUse(media)))
       throw new NotFoundException()

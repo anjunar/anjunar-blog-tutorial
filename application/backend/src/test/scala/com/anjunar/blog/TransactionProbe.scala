@@ -13,12 +13,12 @@ import jakarta.ws.rs.core.{Response, StreamingOutput}
 import java.lang
 import java.io.IOException
 import java.nio.charset.StandardCharsets.UTF_8
-import java.util.UUID
+import java.util
 import java.util.concurrent.ConcurrentHashMap
 import scala.compiletime.uninitialized
 
 object TransactionProbe {
   // Set once by the database suite; the generated identifier contains only letters and digits.
   var table: String = ""
-  val committed = ConcurrentHashMap.newKeySet[UUID]()
+  val committed = ConcurrentHashMap.newKeySet[util.UUID]()
 }

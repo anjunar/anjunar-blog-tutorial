@@ -8,19 +8,23 @@ import jakarta.ws.rs.ext.{ParamConverter, ParamConverterProvider, Provider}
 
 import java.lang.annotation.Annotation
 import java.lang.reflect.Type
-import java.util.UUID
+import java.util
 import scala.compiletime.uninitialized
 
 @Provider
 class EntityParamConverterProvider extends ParamConverterProvider {
   @Inject var manager: EntityManager = uninitialized
 
-  override def getConverter[T](rawType: Class[T], genericType: Type,
-      annotations: Array[Annotation]): ParamConverter[T] =
+  override def getConverter[T](
+    rawType: Class[T],
+    genericType: Type,
+    annotations: Array[Annotation]
+  ): ParamConverter[T] =
     if (!classOf[EntityProvider].isAssignableFrom(rawType) || !rawType.isAnnotationPresent(classOf[Entity])) null
     else new ParamConverter[T] {
       override def fromString(value: String): T = {
-        val id = try UUID.fromString(value) catch {
+        val id = try util.UUID.fromString(value)
+        catch {
           case _: IllegalArgumentException => throw new NotFoundException()
         }
         Option(manager.find(rawType, id)).getOrElse(throw new NotFoundException())

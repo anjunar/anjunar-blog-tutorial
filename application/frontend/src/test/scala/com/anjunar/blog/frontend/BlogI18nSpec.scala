@@ -26,8 +26,10 @@ class BlogI18nSpec extends AnyFunSuite {
     val placeholder = "\\{([A-Za-z][A-Za-z0-9_]*)\\}".r
     BlogI18n.catalog.keys.foreach { key =>
       val german = BlogI18n.catalog.entryFor(key).get.value.at(BlogI18n.German).get.value
-      assert(placeholder.findAllMatchIn(german).map(_.group(1)).toSet == key.placeholders.toSet,
-        s"Changed placeholders for '${key.source}'")
+      assert(
+        placeholder.findAllMatchIn(german).map(_.group(1)).toSet == key.placeholders.toSet,
+        s"Changed placeholders for '${key.source}'"
+      )
     }
   }
 

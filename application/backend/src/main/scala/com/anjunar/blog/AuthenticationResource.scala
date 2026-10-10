@@ -19,7 +19,6 @@ import java.util
 import scala.compiletime.uninitialized
 import scala.annotation.meta.field
 
-
 @PermitAll
 @Path("/auth")
 @RequestScoped
@@ -53,8 +52,11 @@ class AuthenticationResource {
     if (identity.account.nonEmpty) throw new WebApplicationException(Response.status(409).build())
     limiter.check(input.email, request.getRemoteAddr)
     val credential = new UsernamePasswordCredential(input.email, input.password)
-    val status = try security.authenticate(request, response,
-      AuthenticationParameters.withParams().credential(credential))
+    val status = try security.authenticate(
+        request,
+        response,
+        AuthenticationParameters.withParams().credential(credential)
+      )
     finally credential.clear()
     if (status != AuthenticationStatus.SUCCESS) throw new NotAuthorizedException("Session")
     val account = identity.requireAccount()

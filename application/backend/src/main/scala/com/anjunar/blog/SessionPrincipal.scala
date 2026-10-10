@@ -11,10 +11,10 @@ import jakarta.ws.rs.core.Response
 import java.nio.charset.StandardCharsets.UTF_8
 import java.security.{MessageDigest, SecureRandom}
 import java.time.Instant
-import java.util.{Base64, UUID}
+import java.util
 import scala.compiletime.uninitialized
 
-final case class SessionPrincipal(accountId: UUID, authenticationVersion: Long, issuedAt: Instant)
+final case class SessionPrincipal(accountId: util.UUID, authenticationVersion: Long, issuedAt: Instant)
     extends CallerPrincipal(accountId.toString) {
   override def getName: String = accountId.toString
 
@@ -22,4 +22,3 @@ final case class SessionPrincipal(accountId: UUID, authenticationVersion: Long, 
     account != null && !account.locked && account.authenticationVersion == authenticationVersion &&
       !now.isBefore(issuedAt) && now.isBefore(issuedAt.plusSeconds(SecurityConfig.absoluteSeconds))
 }
-

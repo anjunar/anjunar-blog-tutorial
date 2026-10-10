@@ -15,10 +15,10 @@ final class PostSearchParams {
     if (text.length > 100 || text.exists(Character.isISOControl))
       throw new BadRequestException("q must contain at most 100 characters and no control characters")
     val selectedStatus = Option(status).getOrElse("") match {
-      case "" => None
+      case ""                   => None
       case "DRAFT" if editorial => Some(BlogPostStatus.DRAFT)
-      case "PUBLISHED" => Some(BlogPostStatus.PUBLISHED)
-      case _ => throw new BadRequestException("Invalid status filter")
+      case "PUBLISHED"          => Some(BlogPostStatus.PUBLISHED)
+      case _                    => throw new BadRequestException("Invalid status filter")
     }
     val selectedSort = Option(sort).filter(_.nonEmpty).getOrElse(if (editorial) "title" else "newest")
     if (!Set("newest", "oldest", "title", "title-desc").contains(selectedSort))
@@ -28,7 +28,13 @@ final class PostSearchParams {
     val size = Option(limit).flatMap(_.toIntOption).filter(value => value >= 1 && value <= 100)
       .getOrElse(throw new BadRequestException("limit must be between 1 and 100"))
     val requestedLocale = PostLocale.parse(locale)
-    BlogPostSearch(text, if (editorial) selectedStatus else Some(BlogPostStatus.PUBLISHED), selectedSort, start, size,
-      if (editorial) "en" else requestedLocale)
+    BlogPostSearch(
+      text,
+      if (editorial) selectedStatus else Some(BlogPostStatus.PUBLISHED),
+      selectedSort,
+      start,
+      size,
+      if (editorial) "en" else requestedLocale
+    )
   }
 }

@@ -31,9 +31,15 @@ class BlogPostsResource {
     val search = parameters.search(editorial = false)
     val context = queries.searchContext(search)
     val schema = Schema.forGraph(BlogPost.schema, entityManager.getEntityGraph("BlogPost.list"), Set("contentLocale"))
-    val rows = queries.entities(search.index, search.limit, classOf[BlogPost],
-      classOf[BlogPostSummary], context, (query, root, selection, builder) =>
-        BlogPostSummary.selectLocalized(query, root, selection, builder, search.locale)).asScala
+    val rows = queries.entities(
+      search.index,
+      search.limit,
+      classOf[BlogPost],
+      classOf[BlogPostSummary],
+      context,
+      (query, root, selection, builder) =>
+        BlogPostSummary.selectLocalized(query, root, selection, builder, search.locale)
+    ).asScala
       .map(post => new Data(post, schema, links.summary(post, editorial = false, locale = search.locale))).toList.asJava
     val total = queries.count(classOf[BlogPost], context)
     new Table(rows, total, links.page(search, total, editorial = false))
@@ -47,8 +53,11 @@ class BlogPostsResource {
     val locale = PostLocale.parse(requestedLocale)
     val post = BlogPost.findPublishedBySlug(slug).getOrElse(throw new NotFoundException())
     localization.select(post, locale)
-    val schema = Schema.forGraph(BlogPost.schema, entityManager.getEntityGraph("BlogPost.detail"),
-      Set("translation", "contentLocale", "availableLocales"))
+    val schema = Schema.forGraph(
+      BlogPost.schema,
+      entityManager.getEntityGraph("BlogPost.detail"),
+      Set("translation", "contentLocale", "availableLocales")
+    )
     new Data(post, schema, links.publicPost(post, locale))
   }
 }

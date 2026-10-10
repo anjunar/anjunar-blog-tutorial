@@ -7,11 +7,16 @@ import java.util
 
 trait HibernateSearchContext {
   def apply[E](
-      builder: HibernateCriteriaBuilder, query: JpaCriteriaQuery[?], root: JpaRoot[E]
+    builder: HibernateCriteriaBuilder,
+    query: JpaCriteriaQuery[?],
+    root: JpaRoot[E]
   ): HibernateSearchContextResult
 
   def sort[E](
-      builder: HibernateCriteriaBuilder, query: JpaCriteriaQuery[?], root: JpaRoot[E],
-      predicates: util.List[Predicate], selection: util.List[Expression[?]]
+    builder: HibernateCriteriaBuilder,
+    query: JpaCriteriaQuery[?],
+    root: JpaRoot[E],
+    predicates: util.List[Predicate],
+    selection: util.List[Expression[?]]
   ): util.List[Order]
 }

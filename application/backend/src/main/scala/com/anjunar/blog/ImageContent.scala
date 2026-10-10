@@ -4,7 +4,7 @@ import jakarta.ws.rs.WebApplicationException
 import jakarta.ws.rs.core.Response
 
 import java.io.{ByteArrayInputStream, ByteArrayOutputStream, InputStream}
-import java.util.Locale
+import java.util
 import java.util.concurrent.Semaphore
 import javax.imageio.ImageIO
 import javax.imageio.stream.MemoryCacheImageInputStream
@@ -18,7 +18,7 @@ object ImageContent {
   private val decoding = new Semaphore(2)
 
   def normalizedType(value: String): String =
-    Option(value).getOrElse("").takeWhile(_ != ';').trim.toLowerCase(Locale.ROOT)
+    Option(value).getOrElse("").takeWhile(_ != ';').trim.toLowerCase(util.Locale.ROOT)
 
   def read(input: InputStream, declaredType: String): DecodedImage = {
     val contentType = normalizedType(declaredType)
@@ -41,7 +41,7 @@ object ImageContent {
       val reader = readers.next()
       try {
         reader.setInput(input, true, true)
-        val format = reader.getFormatName.toLowerCase(Locale.ROOT)
+        val format = reader.getFormatName.toLowerCase(util.Locale.ROOT)
         val expected = if (contentType == "image/jpeg") Set("jpeg", "jpg") else Set("png")
         if (!expected.contains(format)) Problem.invalidField("coverImage", "The image does not match its content type.")
         val width = reader.getWidth(0)
@@ -58,7 +58,7 @@ object ImageContent {
       } finally reader.dispose()
     } catch {
       case error: ApiProblem => throw error
-      case NonFatal(_) => Problem.invalidField("coverImage", "The image could not be decoded.")
+      case NonFatal(_)       => Problem.invalidField("coverImage", "The image could not be decoded.")
     } finally input.close()
   }
 

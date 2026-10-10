@@ -39,7 +39,8 @@ class PageHeadSpec extends AnyFunSuite {
   }
 
   test("pagination stays self-canonical while search, custom sorting and empty pages are noindex") {
-    def entries(search: PostSearch, empty: Boolean = false) = PageHead.list(origin, "en", search, empty, "Posts", "Notes")
+    def entries(search: PostSearch, empty: Boolean = false) =
+      PageHead.list(origin, "en", search, empty, "Posts", "Notes")
     assert(attribute(entries(PostSearch(offset = 20)), "link:canonical", "href") == origin + "/en?offset=20")
     assert(attribute(entries(PostSearch(offset = 20)), "meta:name=robots", "content") == "index, follow")
     Seq(PostSearch(query = "Scala & CDI"), PostSearch(sort = "title"), PostSearch(limit = 5))

@@ -10,15 +10,14 @@ import scala.scalajs.js
 import scala.scalajs.js.URIUtils.{decodeURIComponent, encodeURIComponent}
 import scala.util.control.NonFatal
 final class InitialPageData private (
-    url: String,
-    recording: Boolean,
-    private var replaying: Boolean,
-    private var pending: Option[PageSnapshot]
+  url: String,
+  recording: Boolean,
+  private var replaying: Boolean,
+  private var pending: Option[PageSnapshot]
 ) {
   val encoded: Property[String] = Property(InitialPageData.encode(new PageSnapshot(url = url)))
 
-  def get[M](path: String, signal: Option[dom.AbortSignal])(using
-      ExecutionContext, JsonSchema[M]): Future[M] = {
+  def get[M](path: String, signal: Option[dom.AbortSignal])(using ExecutionContext, JsonSchema[M]): Future[M] = {
     require(InitialPageData.publicRequest(path), "Only public post responses belong in initial state")
     val response = if (replaying) {
       val saved = pending.filter(_.request == path)
@@ -33,8 +32,14 @@ final class InitialPageData private (
     }
     response.map { value =>
       if (recording) encoded.set(InitialPageData.encode(
-        new PageSnapshot(url = url, request = path, status = value.status,
-          contentType = value.contentType, body = value.body)))
+        new PageSnapshot(
+          url = url,
+          request = path,
+          status = value.status,
+          contentType = value.contentType,
+          body = value.body
+        )
+      ))
       HttpJson.decode[M](value)
     }(using ExecutionContext.parasitic)
   }
@@ -58,8 +63,11 @@ object InitialPageData {
     require(saved != null && saved.format == 1 && saved.url == url, "Initial state belongs to another page")
     require(saved.request != null && saved.body != null && saved.contentType != null, "Incomplete initial state")
     val hasResponse = saved.request.nonEmpty
-    require(if (hasResponse) publicRequest(saved.request) && saved.status >= 100 && saved.status <= 599
-      else saved.status == 0 && saved.body.isEmpty && saved.contentType.isEmpty, "Invalid initial response")
+    require(
+      if (hasResponse) publicRequest(saved.request) && saved.status >= 100 && saved.status <= 599
+      else saved.status == 0 && saved.body.isEmpty && saved.contentType.isEmpty,
+      "Invalid initial response"
+    )
     new InitialPageData(url, false, true, Option.when(hasResponse)(saved))
   }
 

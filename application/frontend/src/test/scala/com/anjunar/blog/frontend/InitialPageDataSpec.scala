@@ -13,8 +13,13 @@ class InitialPageDataSpec extends AnyFunSuite {
   private val body = """{"data":{"id":"post-id","version":0,"title":"Original","content":"English",
     "contentLocale":"de","translation":{"title":"Deutsch","content":"Übersetzt"}}}"""
   private def snapshot(status: Int = 200, value: String = body): PageSnapshot =
-    new PageSnapshot(url = "/de/posts/example", request = request, status = status,
-      contentType = "application/json", body = value)
+    new PageSnapshot(
+      url = "/de/posts/example",
+      request = request,
+      status = status,
+      contentType = "application/json",
+      body = value
+    )
 
   test("initial JSON is mapped synchronously without losing selected or omitted entity fields") {
     val data = InitialPageData.replay(InitialPageData.encode(snapshot()), "/de/posts/example")

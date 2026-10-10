@@ -4,7 +4,7 @@ import jakarta.ws.rs.WebApplicationException
 import org.scalatest.funsuite.AnyFunSuite
 
 import java.time.Instant
-import java.util.UUID
+import java.util
 
 class SecuritySpec extends AnyFunSuite {
   private val password = "a long tutorial passphrase"
@@ -21,8 +21,15 @@ class SecuritySpec extends AnyFunSuite {
 
   test("hash parsing rejects plaintext, malformed encodings and attacker-selected work factors") {
     val good = PasswordHash.create(password)
-    for (stored <- Seq(password, "", "pbkdf2-sha256$600000$!$!",
-      good.replace("$600000$", "$2147483647$"), good + "$extra")) {
+    for (
+      stored <- Seq(
+        password,
+        "",
+        "pbkdf2-sha256$600000$!$!",
+        good.replace("$600000$", "$2147483647$"),
+        good + "$extra"
+      )
+    ) {
       assert(!PasswordHash.verify(password, stored))
     }
     assert(!PasswordHash.verify(null, good))
@@ -47,7 +54,7 @@ class SecuritySpec extends AnyFunSuite {
   test("session validity checks account lock, authentication version and absolute expiry") {
     val now = Instant.parse("2026-09-27T12:00:00Z")
     val account = new Account()
-    account.id = UUID.randomUUID()
+    account.id = util.UUID.randomUUID()
     val principal = SessionPrincipal(account.id, 0, now)
     assert(principal.active(account, now))
     assert(!principal.active(account, now.plusSeconds(SecurityConfig.absoluteSeconds)))

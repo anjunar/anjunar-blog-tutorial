@@ -12,10 +12,12 @@ class MediaModelSpec extends AnyFunSuite {
   private val second = "512d47a1-9e51-4356-a50e-7d05b00f9fcd"
   private def image(id: String): Media =
     JsonMapper.deserialize[Media](js.JSON.parse(
-      s"""{"id":"$id","version":0,"name":"Cover","contentType":"image/png","width":4,"height":3,"byteSize":72}"""))
+      s"""{"id":"$id","version":0,"name":"Cover","contentType":"image/png","width":4,"height":3,"byteSize":72}"""
+    ))
   private def post(): BlogPost = {
     val value = JsonMapper.deserialize[BlogPost](js.JSON.parse(
-      """{"id":"post","version":0,"title":"First title","slug":"first-post","content":"Text"}"""))
+      """{"id":"post","version":0,"title":"First title","slug":"first-post","content":"Text"}"""
+    ))
     value.coverImage.set(image(first)); value.coverImage.setDefault(value.coverImage.get)
     value.coverAlt.set("Original description"); value.coverAlt.setDefault(value.coverAlt.get)
     value

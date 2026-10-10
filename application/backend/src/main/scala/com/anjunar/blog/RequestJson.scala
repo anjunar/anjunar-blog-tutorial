@@ -28,7 +28,7 @@ object RequestJson {
         parser.nextToken()
         val result = node(parser) match {
           case value: JsonObject => value
-          case _ => throw new ApiProblem(400, "The request body must be a JSON object.")
+          case _                 => throw new ApiProblem(400, "The request body must be a JSON object.")
         }
         if (parser.nextToken() != null) throw new ApiProblem(400, "Send exactly one JSON object.")
         result
@@ -54,11 +54,11 @@ object RequestJson {
       val values = new util.ArrayList[JsonNode]()
       while (parser.nextToken() != JsonToken.END_ARRAY) values.add(node(parser))
       new JsonArray(values)
-    case JsonToken.VALUE_STRING => new JsonString(parser.getString())
+    case JsonToken.VALUE_STRING                                    => new JsonString(parser.getString())
     case JsonToken.VALUE_NUMBER_INT | JsonToken.VALUE_NUMBER_FLOAT => new JsonNumber(parser.getString())
-    case JsonToken.VALUE_TRUE => new JsonBoolean(true)
-    case JsonToken.VALUE_FALSE => new JsonBoolean(false)
-    case JsonToken.VALUE_NULL => new JsonNull()
-    case _ => throw new ApiProblem(400, "Invalid JSON value.")
+    case JsonToken.VALUE_TRUE                                      => new JsonBoolean(true)
+    case JsonToken.VALUE_FALSE                                     => new JsonBoolean(false)
+    case JsonToken.VALUE_NULL                                      => new JsonNull()
+    case _                                                         => throw new ApiProblem(400, "Invalid JSON value.")
   }
 }

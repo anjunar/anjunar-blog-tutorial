@@ -18,7 +18,7 @@ final class MetadataSave[T](send: js.Dynamic => Future[T], accepted: T => Unit)(
     if (disposed || busy.get || blocked.get) return
     busy.set(true); error.set(None); fields.set(Seq.empty)
     Future.fromTry(Try(send(body))).flatten.onComplete {
-      case Success(value) if !disposed => busy.set(false); accepted(value)
+      case Success(value) if !disposed   => busy.set(false); accepted(value)
       case Failure(failure) if !disposed =>
         val http = failure match { case value: HttpFailure => Some(value); case _ => None }
         val errors = http.flatMap(_.problem).toSeq.flatMap(value => Option(value.errors).getOrElse(Seq.empty))

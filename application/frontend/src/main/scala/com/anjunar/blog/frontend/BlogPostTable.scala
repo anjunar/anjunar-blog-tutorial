@@ -9,7 +9,7 @@ import scala.scalajs.js
 import scala.scalajs.js.JSConverters.*
 
 final class BlogPostTable(
-    var rows: Seq[BlogPostData] = Seq.empty,
-    var size: Long = -1L,
-    @(JsonProperty @field)("$links") var links: Seq[ApiLink] = Seq.empty
+  var rows: Seq[BlogPostData] = Seq.empty,
+  var size: Long = -1L,
+  @(JsonProperty @field)("$links") var links: Seq[ApiLink] = Seq.empty
 )

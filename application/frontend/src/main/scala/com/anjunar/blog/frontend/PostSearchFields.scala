@@ -40,4 +40,3 @@ final class PostSearchFields(search: PostSearch) {
     PostSearch.parse(values.get, editorial)
   }
 }
-

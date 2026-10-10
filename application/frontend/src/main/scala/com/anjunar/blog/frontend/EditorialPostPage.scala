@@ -19,8 +19,9 @@ import ui.router.RouterLink.routerLink
 
 import scala.concurrent.ExecutionContext
 
-final class EditorialPostPage(initial: BlogPostData, service: EditorialService, retry: () => Unit)
-    (using ExecutionContext) extends AbstractComponent {
+final class EditorialPostPage(initial: BlogPostData, service: EditorialService, retry: () => Unit)(using
+  ExecutionContext
+) extends AbstractComponent {
   val tagName = "section"
   private val actions = new EditorialActions(initial, service)
 
@@ -36,16 +37,20 @@ final class EditorialPostPage(initial: BlogPostData, service: EditorialService, 
         role = "status"
         ariaLabel = i18n"Publication status"
         text(actions.current.map(value =>
-          if (value.data.status.get == "PUBLISHED") i18n"Published" else i18n"Draft")) {}
+          if (value.data.status.get == "PUBLISHED") i18n"Published" else i18n"Draft"
+        )) {}
       }
       paragraph {
         classes = "post-author"
         val authorName = actions.current.map(value =>
-          Option(value.data.author.get).flatMap(account => Option(account.displayName.get)).getOrElse(""))
+          Option(value.data.author.get).flatMap(account => Option(account.displayName.get)).getOrElse("")
+        )
         when(authorName.map(_.nonEmpty)) { text(authorName) {} }
         when(authorName.map(_.isEmpty)) { text(i18n"Editorial team") {} }
       }
-      paragraph { classes = "post-tags"; text(actions.current.map(_.data.tags.toSeq.map(_.name.get).mkString(", "))) {} }
+      paragraph {
+        classes = "post-tags"; text(actions.current.map(_.data.tags.toSeq.map(_.name.get).mkString(", "))) {}
+      }
       paragraph { text(actions.current.flatMap(_.data.summary.map(value => Option(value).getOrElse("")))) {} }
       div {
         classes = "editorial-controls"
@@ -68,12 +73,14 @@ final class EditorialPostPage(initial: BlogPostData, service: EditorialService, 
       when(actions.error.map(_ != 0)) {
         paragraph {
           role = "alert"
-          text(actions.error.map(code => code match {
-            case 401 => i18n"Your session ended. Sign in again."
-            case 403 => i18n"This action is no longer allowed. Reload to check your access."
-            case 409 => i18n"The post changed. Reload before trying again."
-            case _ => i18n"The action could not be confirmed. Reload to check the post."
-          })) {}
+          text(actions.error.map(code =>
+            code match {
+              case 401 => i18n"Your session ended. Sign in again."
+              case 403 => i18n"This action is no longer allowed. Reload to check your access."
+              case 409 => i18n"The post changed. Reload before trying again."
+              case _   => i18n"The action could not be confirmed. Reload to check the post."
+            }
+          )) {}
         }
         div {
           classes = "editorial-controls"

@@ -6,14 +6,15 @@ import java.net.{InetAddress, ServerSocket, URI}
 import java.net.http.{HttpClient, HttpRequest, HttpResponse}
 import java.nio.file.Path
 import java.time.Duration
-import java.util.UUID
+import java.util
 
 class ServerIntegrationSpec extends AnyFunSuite {
 
   test("Undertow serves the REST resource with its CDI dependency and returns 404 for unknown resources") {
     // Let the OS choose a currently available loopback port for this test.
     val reservation = new ServerSocket(0, 1, InetAddress.getByName("127.0.0.1"))
-    val port = try reservation.getLocalPort finally reservation.close()
+    val port = try reservation.getLocalPort
+    finally reservation.close()
 
     val server = ApplicationMain.start(port)
     val client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build()
@@ -42,8 +43,9 @@ class ServerIntegrationSpec extends AnyFunSuite {
 
   test("API liveness remains available before frontend assets are built") {
     val reservation = new ServerSocket(0, 1, InetAddress.getByName("127.0.0.1"))
-    val port = try reservation.getLocalPort finally reservation.close()
-    val missingAssets = Path.of("target", s"missing-assets-${UUID.randomUUID()}")
+    val port = try reservation.getLocalPort
+    finally reservation.close()
+    val missingAssets = Path.of("target", s"missing-assets-${util.UUID.randomUUID()}")
     val server = ApplicationMain.start(port, missingAssets)
     val client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build()
     try {

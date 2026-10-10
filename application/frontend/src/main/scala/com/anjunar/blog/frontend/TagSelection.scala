@@ -36,12 +36,14 @@ final class TagSelection(choices: ReadOnlyProperty[js.Array[BlogTag]])
         ComboBox.placeholder = i18n"Choose tags"
         choice.addDisposable(choices.observe { values =>
           ComboBox.items[BlogTag].setAll(values.map(tag =>
-            valueProperty.find(_.id.get == tag.id.get).getOrElse(tag)))
+            valueProperty.find(_.id.get == tag.id.get).getOrElse(tag)
+          ))
         })
         choice.addDisposable(ListProperty.subscribeBidirectional(valueProperty, ComboBox.selection[BlogTag]))
         choice.addDisposable(editableProperty.observe(choice.editableProperty.set))
         choice.addDisposable(invalid.observe(value =>
-          AttributeDsl.setAttribute("aria-invalid", value.toString)))
+          AttributeDsl.setAttribute("aria-invalid", value.toString)
+        ))
         choice.addDisposable(ComboBox.selection[BlogTag].observeWithoutInitial(_ => setDirty(true)))
       }
       val controller = FormContext.inject.getOrElse(throw new IllegalStateException("Tag selection requires a form"))

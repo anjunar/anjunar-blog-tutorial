@@ -14,8 +14,10 @@ class RestComponentsExtension extends Extension {
 
   def collect(@Observes event: ProcessManagedBean[?]): Unit = {
     val beanType = event.getAnnotatedBeanClass
-    if (beanType.isAnnotationPresent(classOf[Path]) ||
-        beanType.isAnnotationPresent(classOf[Provider])) {
+    if (
+      beanType.isAnnotationPresent(classOf[Path]) ||
+      beanType.isAnnotationPresent(classOf[Provider])
+    ) {
       components.add(beanType.getJavaClass)
     }
   }

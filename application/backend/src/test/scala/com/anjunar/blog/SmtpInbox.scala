@@ -6,7 +6,7 @@ import jakarta.mail.internet.MimeMessage
 import java.io.{BufferedReader, ByteArrayInputStream, InputStreamReader, PrintWriter}
 import java.net.{InetAddress, ServerSocket, SocketException}
 import java.nio.charset.StandardCharsets.UTF_8
-import java.util.Properties
+import java.util
 import java.util.concurrent.{LinkedBlockingQueue, TimeUnit}
 import scala.util.Using
 
@@ -36,8 +36,10 @@ final class SmtpInbox(port: Int) extends AutoCloseable {
                 body.append(if (data.startsWith("..")) data.drop(1) else data).append("\r\n")
                 data = input.readLine()
               }
-              messages.add(new MimeMessage(Session.getInstance(new Properties()),
-                new ByteArrayInputStream(body.toString.getBytes(UTF_8))))
+              messages.add(new MimeMessage(
+                Session.getInstance(new util.Properties()),
+                new ByteArrayInputStream(body.toString.getBytes(UTF_8))
+              ))
               reply("250 Captured")
             } else if (line == "QUIT") { reply("221 Bye"); running = false }
             else reply("250 OK")

@@ -35,10 +35,14 @@ final class PostSearchForm(search: PostSearch) extends AbstractComponent {
       // Native controls can be edited while the browser bundle is still loading.
       // Capture before bindings write defaults; restore through the model after claims finish.
       val element = DomNodes.raw(node).asInstanceOf[dom.Element]
-      val pending = Seq("query" -> fields.query, "status" -> fields.status,
-        "sort" -> fields.sort, "limit" -> fields.limit).flatMap { (name, property) =>
+      val pending = Seq(
+        "query" -> fields.query,
+        "status" -> fields.status,
+        "sort" -> fields.sort,
+        "limit" -> fields.limit
+      ).flatMap { (name, property) =>
         Option(element.querySelector(s"[name='$name']")).collect {
-          case input: dom.HTMLInputElement => property -> input.value
+          case input: dom.HTMLInputElement   => property -> input.value
           case select: dom.HTMLSelectElement => property -> select.value
         }
       }
@@ -97,11 +101,14 @@ final class PostSearchForm(search: PostSearch) extends AbstractComponent {
               attr("for", "post-status")
               text(i18n"Publication status") {}
             }
-            selectInput("status", Seq(
-              SelectOption("", i18n"All statuses"),
-              SelectOption("DRAFT", i18n"Draft"),
-              SelectOption("PUBLISHED", i18n"Published")
-            )) { id = "post-status" }
+            selectInput(
+              "status",
+              Seq(
+                SelectOption("", i18n"All statuses"),
+                SelectOption("DRAFT", i18n"Draft"),
+                SelectOption("PUBLISHED", i18n"Published")
+              )
+            ) { id = "post-status" }
           }
         }
         div {
@@ -109,20 +116,27 @@ final class PostSearchForm(search: PostSearch) extends AbstractComponent {
             attr("for", "post-sort")
             text(i18n"Sort by") {}
           }
-          selectInput("sort", Seq(
-            SelectOption("newest", i18n"Newest first"),
-            SelectOption("oldest", i18n"Oldest first"),
-            SelectOption("title", i18n"Title A–Z"),
-            SelectOption("title-desc", i18n"Title Z–A")
-          )) { id = "post-sort" }
+          selectInput(
+            "sort",
+            Seq(
+              SelectOption("newest", i18n"Newest first"),
+              SelectOption("oldest", i18n"Oldest first"),
+              SelectOption("title", i18n"Title A–Z"),
+              SelectOption("title-desc", i18n"Title Z–A")
+            )
+          ) { id = "post-sort" }
         }
         div {
           label {
             attr("for", "post-limit")
             text(i18n"Posts per page") {}
           }
-          selectInput("limit", (Seq(10, 20, 50, 100) :+ search.limit).distinct.sorted.map(value =>
-            SelectOption(value.toString, Property(value.toString)))) { id = "post-limit" }
+          selectInput(
+            "limit",
+            (Seq(10, 20, 50, 100) :+ search.limit).distinct.sorted.map(value =>
+              SelectOption(value.toString, Property(value.toString))
+            )
+          ) { id = "post-limit" }
         }
         div {
           classes = "search-buttons"

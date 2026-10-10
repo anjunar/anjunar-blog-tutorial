@@ -13,7 +13,6 @@ import jakarta.ws.rs.core.{Context, MediaType, Response}
 import scala.annotation.meta.field
 import scala.compiletime.uninitialized
 
-
 @PermitAll
 @Path("/auth")
 @RequestScoped

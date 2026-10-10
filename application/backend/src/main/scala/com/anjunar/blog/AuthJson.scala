@@ -21,13 +21,13 @@ object AuthJson {
     try {
       val json = JsonParser.parse(new String(bytes, UTF_8)) match {
         case value: JsonObject => value
-        case _ => throw new BadRequestException()
+        case _                 => throw new BadRequestException()
       }
       if (json.value.keySet().asScala.toSet != fields.keySet) throw new BadRequestException()
       fields.map { (name, max) =>
         val value = json.value.get(name) match {
           case value: JsonString if value.value.length <= max => value.value
-          case _ => throw new BadRequestException()
+          case _                                              => throw new BadRequestException()
         }
         name -> value
       }

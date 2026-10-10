@@ -34,8 +34,11 @@ final class MediaService(accounts: AccountService)(using ExecutionContext) {
           if (!response.ok) Future.failed(HttpJson.failure(response.status, response.headers.get("Content-Type"), body))
           else {
             val result = JsonMapper.deserialize[MediaData](js.JSON.parse(body))
-            require(result.data != null && result.data.width.get > 0 && result.data.height.get > 0 &&
-              result.data.byteSize.get > 0, "Missing image metadata")
+            require(
+              result.data != null && result.data.width.get > 0 && result.data.height.get > 0 &&
+                result.data.byteSize.get > 0,
+              "Missing image metadata"
+            )
             result.data.source
             Future.successful(result.data)
           }

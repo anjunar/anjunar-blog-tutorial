@@ -11,7 +11,6 @@ enum SaveNotice {
 
   def isError: Boolean = this match {
     case Idle | Saved | NewerEdits => false
-    case _ => true
+    case _                         => true
   }
 }
-

@@ -26,4 +26,3 @@ class MediaProbeResource {
     lifecycle.cleanup(Instant.now().minusSeconds(86400), Some(identity.requireAccount().id), limit).toString
   }
 }
-

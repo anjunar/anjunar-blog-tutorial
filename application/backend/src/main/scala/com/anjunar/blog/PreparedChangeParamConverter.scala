@@ -19,12 +19,19 @@ class PreparedChangeParamConverter extends ParamConverterProvider {
   @Inject var changes: PreparedChanges = uninitialized
   @Context var request: HttpServletRequest = uninitialized
 
-  override def getConverter[T](clazz: Class[T], genericType: Type,
-      annotations: Array[Annotation]): ParamConverter[T] =
+  override def getConverter[T](
+    clazz: Class[T],
+    genericType: Type,
+    annotations: Array[Annotation]
+  ): ParamConverter[T] =
     if (!PreparedChanges.supports(clazz, genericType)) null
     else new ParamConverter[T] {
       override def fromString(id: String): T =
-        changes.update(id, RequestJson.read(request.getInputStream), PreparedChanges.entityClass(genericType).get).asInstanceOf[T]
+        changes.update(
+          id,
+          RequestJson.read(request.getInputStream),
+          PreparedChanges.entityClass(genericType).get
+        ).asInstanceOf[T]
       override def toString(value: T): String =
         value.asInstanceOf[PreparedChange[EntityProvider]].getEntity().id.toString
     }

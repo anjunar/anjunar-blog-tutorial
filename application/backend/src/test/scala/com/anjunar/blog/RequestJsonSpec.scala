@@ -16,8 +16,11 @@ class RequestJsonSpec extends AnyFunSuite {
   }
 
   test("duplicate decoded keys and unescaped control characters are rejected") {
-    Seq("""{"version":0,"version":1}""", """{"title":"a","\u0074itle":"b"}""",
-      "{\"title\":\"a\nb\"}").foreach { text =>
+    Seq(
+      """{"version":0,"version":1}""",
+      """{"title":"a","\u0074itle":"b"}""",
+      "{\"title\":\"a\nb\"}"
+    ).foreach { text =>
       assert(intercept[ApiProblem](read(text)).status == 400)
     }
   }

@@ -20,15 +20,17 @@ import ui.forms.Input.{input, inputType, inputType_=}
 
 import scala.concurrent.ExecutionContext
 
-final class AccountPage(initial: Option[SessionState], service: AccountService, retry: () => Unit)
-    (using ExecutionContext) extends AbstractComponent {
+final class AccountPage(initial: Option[SessionState], service: AccountService, retry: () => Unit)(using
+  ExecutionContext
+) extends AbstractComponent {
   val tagName = "section"
   private val actions = new AccountActions(initial.getOrElse(new SessionState()), service)
 
   override def compose(cursor: Cursor): Unit = {
     addDisposable(() => actions.dispose())
     LanguageNavigation.protect(actions.busy, actions.session, actions.credentials.email, actions.credentials.password) {
-      actions.busy.get || (actions.session.get.account.isEmpty &&
+      actions.busy.get ||
+      (actions.session.get.account.isEmpty &&
         (actions.credentials.email.get.nonEmpty || actions.credentials.password.get.nonEmpty))
     }(using this)
     render(this, cursor) {
@@ -42,12 +44,14 @@ final class AccountPage(initial: Option[SessionState], service: AccountService, 
           paragraph {
             classes = "form-error"
             role = "alert"
-            text(actions.error.map(code => code match {
-              case 401 => i18n"Invalid email or password."
-              case 429 => i18n"Too many attempts. Please wait a minute before trying again."
-              case 403 | 409 => i18n"Your session changed. Reload this page before trying again."
-              case _ => i18n"The request failed. Please try again."
-            })) {}
+            text(actions.error.map(code =>
+              code match {
+                case 401       => i18n"Invalid email or password."
+                case 429       => i18n"Too many attempts. Please wait a minute before trying again."
+                case 403 | 409 => i18n"Your session changed. Reload this page before trying again."
+                case _         => i18n"The request failed. Please try again."
+              }
+            )) {}
           }
         }
         when(actions.session.map(_.account.isEmpty)) {
@@ -90,7 +94,8 @@ final class AccountPage(initial: Option[SessionState], service: AccountService, 
           }
           paragraph {
             text(actions.session.map(state =>
-              if (state.account.exists(_.role.get == "ADMIN")) i18n"Administrator" else i18n"Reader")) {}
+              if (state.account.exists(_.role.get == "ADMIN")) i18n"Administrator" else i18n"Reader"
+            )) {}
           }
           when(actions.session.map(_.links.exists(_.rel == "editorial"))) {
             paragraph { routerLink("/editorial") { text(i18n"Open editorial") {} } }

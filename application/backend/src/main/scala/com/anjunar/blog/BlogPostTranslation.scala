@@ -15,22 +15,33 @@ import jakarta.validation.constraints.{AssertTrue, NotBlank, NotNull, Pattern, S
 import jakarta.persistence.{PrePersist, PreUpdate}
 import java.time.Instant
 import java.util
-import java.util.UUID
 import scala.compiletime.uninitialized
 
 @Entity
 @SchemaId("ab210001")
 @Access(AccessType.FIELD)
-@Table(name = "blog_post_translation", schema = "public",
-  uniqueConstraints = Array(new UniqueConstraint(name = "uq_post_translation_locale", columnNames = Array("post_id", "locale"))))
-@NamedEntityGraph(name = "BlogPostTranslation.detail", attributeNodes = Array(
-  new NamedAttributeNode("id"), new NamedAttributeNode("version"), new NamedAttributeNode("locale"),
-  new NamedAttributeNode("title"), new NamedAttributeNode("summary"), new NamedAttributeNode("content"),
-  new NamedAttributeNode("published")))
+@Table(
+  name = "blog_post_translation",
+  schema = "public",
+  uniqueConstraints =
+    Array(new UniqueConstraint(name = "uq_post_translation_locale", columnNames = Array("post_id", "locale")))
+)
+@NamedEntityGraph(
+  name = "BlogPostTranslation.detail",
+  attributeNodes = Array(
+    new NamedAttributeNode("id"),
+    new NamedAttributeNode("version"),
+    new NamedAttributeNode("locale"),
+    new NamedAttributeNode("title"),
+    new NamedAttributeNode("summary"),
+    new NamedAttributeNode("content"),
+    new NamedAttributeNode("published")
+  )
+)
 class BlogPostTranslation extends EntityProvider {
   @Id @GeneratedValue(strategy = GenerationType.UUID)
   @Column(nullable = false, updatable = false) @SchemaId("ab210002") @JsonbProperty
-  var id: UUID = null
+  var id: util.UUID = null
 
   @Version @Column(nullable = false) @SchemaId("ab210003") @JsonbProperty
   var version: Long = -1L
@@ -60,11 +71,14 @@ class BlogPostTranslation extends EntityProvider {
   var published: Boolean = false
 
   @ManyToMany(fetch = FetchType.LAZY)
-  @JoinTable(name = "blog_post_translation_media", schema = "public",
+  @JoinTable(
+    name = "blog_post_translation_media",
+    schema = "public",
     joinColumns = Array(new JoinColumn(name = "translation_id")),
     inverseJoinColumns = Array(new JoinColumn(name = "media_id")),
     foreignKey = new ForeignKey(name = "fk_translation_media_translation"),
-    inverseForeignKey = new ForeignKey(name = "fk_translation_media_media"))
+    inverseForeignKey = new ForeignKey(name = "fk_translation_media_media")
+  )
   @NotNull @SchemaId("ab210010") @JsonbTransient
   var inlineMedia: util.Set[Media] = new util.LinkedHashSet[Media]()
 
@@ -83,7 +97,7 @@ class BlogPostTranslation extends EntityProvider {
 
 object BlogPostTranslation extends SchemaProvider[BlogPostTranslation.Schema] {
   class Schema extends EntitySchema[BlogPostTranslation](RuntimeContext.entityManager()) {
-    val id: SingularProperty[BlogPostTranslation, UUID] = reference(_.id)
+    val id: SingularProperty[BlogPostTranslation, util.UUID] = reference(_.id)
     val version: SingularProperty[BlogPostTranslation, Long] = reference(_.version)
     val updatedAt: SingularProperty[BlogPostTranslation, Instant] = reference(_.updatedAt)
     val post: SingularProperty[BlogPostTranslation, BlogPost] = reference(_.post)

@@ -26,8 +26,14 @@ class EditorialAuthorsResource {
   @GET @EntityGraph("Account.author")
   def list(@BeanParam parameters: CatalogParams): Table[Data[Account]] = {
     val context = queries.searchContext(AuthorSearch(index = parameters.start, limit = parameters.size))
-    val rows = queries.entities(parameters.start, parameters.size, classOf[Account], classOf[Account],
-      context, (query, root, _, _) => query.select(root)).asScala.map(result).asJava
+    val rows = queries.entities(
+      parameters.start,
+      parameters.size,
+      classOf[Account],
+      classOf[Account],
+      context,
+      (query, root, _, _) => query.select(root)
+    ).asScala.map(result).asJava
     val total = queries.count(classOf[Account], context)
     new Table(rows, total, parameters.links("/service/editorial/authors", total, create = false))
   }
@@ -43,6 +49,9 @@ class EditorialAuthorsResource {
   }
 
   private def result(account: Account): Data[Account] =
-    new Data(account, Schema.forGraph(Account.schema, manager.getEntityGraph("Account.author")),
-      util.List.of(new Link("update", s"/service/editorial/authors/${account.id}", "PATCH", "Account")))
+    new Data(
+      account,
+      Schema.forGraph(Account.schema, manager.getEntityGraph("Account.author")),
+      util.List.of(new Link("update", s"/service/editorial/authors/${account.id}", "PATCH", "Account"))
+    )
 }

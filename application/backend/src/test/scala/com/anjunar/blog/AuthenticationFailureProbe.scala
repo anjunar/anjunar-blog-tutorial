@@ -34,7 +34,7 @@ class AuthenticationFailureProbe extends WriterInterceptor {
     failure match {
       case "writer" => throw new IOException("Intentional authentication response failure")
       case "commit" => NarayanaUserTransaction.userTransaction().setRollbackOnly()
-      case _ => ()
+      case _        => ()
     }
     context.proceed()
   }

@@ -13,44 +13,43 @@ import org.scalatest.BeforeAndAfterAll
 import org.scalatest.funsuite.AnyFunSuite
 
 import java.util
-import java.util.UUID
 import scala.annotation.meta.field
 
 object HibernateSearchSpec {
   final case class ById(
-      @(JsonbProperty @field) @(RestPredicate @field)(value = classOf[IdPredicate], name = "postId")
-      id: UUID
+    @(JsonbProperty @field) @(RestPredicate @field)(value = classOf[IdPredicate], name = "postId")
+    id: util.UUID
   ) extends AbstractSearch {
     override val index: Int = 0
     override val limit: Int = 10
   }
 
   @ApplicationScoped
-  class IdPredicate extends PredicateProvider[UUID, BlogPost] {
-    override def build(context: Context[UUID, BlogPost]): Unit = {
-      val parameter = context.builder.parameter(classOf[UUID], context.name)
+  class IdPredicate extends PredicateProvider[util.UUID, BlogPost] {
+    override def build(context: Context[util.UUID, BlogPost]): Unit = {
+      val parameter = context.builder.parameter(classOf[util.UUID], context.name)
       context.predicates.add(context.builder.equal(context.root.get(BlogPost.schema.id), parameter))
       context.parameters.put(context.name, context.value)
     }
   }
 
   final case class MissingPredicate(
-      @(JsonbProperty @field) @(RestPredicate @field)(classOf[UndiscoveredPredicate])
-      id: UUID
+    @(JsonbProperty @field) @(RestPredicate @field)(classOf[UndiscoveredPredicate])
+    id: util.UUID
   ) extends AbstractSearch {
     override val index: Int = 0
     override val limit: Int = 10
   }
 
   @Vetoed
-  class UndiscoveredPredicate extends PredicateProvider[UUID, BlogPost] {
-    override def build(context: Context[UUID, BlogPost]): Unit =
+  class UndiscoveredPredicate extends PredicateProvider[util.UUID, BlogPost] {
+    override def build(context: Context[util.UUID, BlogPost]): Unit =
       throw new AssertionError("This provider must not be discovered")
   }
 
   final case class MissingSort(
-      @(JsonbProperty @field) @(RestSort @field)(classOf[UndiscoveredSort])
-      sort: String = "title"
+    @(JsonbProperty @field) @(RestSort @field)(classOf[UndiscoveredSort])
+    sort: String = "title"
   ) extends AbstractSearch {
     override val index: Int = 0
     override val limit: Int = 10
@@ -95,7 +94,7 @@ class HibernateSearchSpec extends AnyFunSuite with BeforeAndAfterAll {
   test("a new CDI search provider supports entity and scalar projections and a separate count") {
     inTransaction { (queries, manager) =>
       val post = new BlogPost()
-      post.slug = "search-provider-" + UUID.randomUUID()
+      post.slug = "search-provider-" + util.UUID.randomUUID()
       post.title = "A separate provider"
       post.content = "Only selected for the entity projection."
       manager.persist(post)
@@ -104,26 +103,44 @@ class HibernateSearchSpec extends AnyFunSuite with BeforeAndAfterAll {
 
       val search = ById(post.id)
       val context = queries.searchContext(search)
-      val entities = queries.entities(search.index, search.limit, classOf[BlogPost],
-        classOf[BlogPost], context, (query, root, _, _) => query.select(root))
-      val titles = queries.entities(search.index, search.limit, classOf[BlogPost],
-        classOf[String], context, (query, root, _, _) => query.select(root.get(BlogPost.schema.title)))
+      val entities = queries.entities(
+        search.index,
+        search.limit,
+        classOf[BlogPost],
+        classOf[BlogPost],
+        context,
+        (query, root, _, _) => query.select(root)
+      )
+      val titles = queries.entities(
+        search.index,
+        search.limit,
+        classOf[BlogPost],
+        classOf[String],
+        context,
+        (query, root, _, _) => query.select(root.get(BlogPost.schema.title))
+      )
       assert(entities.size() == 1)
       assert(entities.get(0).id == post.id)
       assert(titles == util.List.of(post.title))
       assert(queries.count(classOf[BlogPost], context) == 1L)
-      assert(queries.count(classOf[BlogPost], queries.searchContext(ById(UUID.randomUUID()))) == 0L)
+      assert(queries.count(classOf[BlogPost], queries.searchContext(ById(util.UUID.randomUUID()))) == 0L)
     }
   }
 
   test("a missing predicate provider fails instead of returning unrestricted rows or counts") {
     inTransaction { (queries, _) =>
-      val context = queries.searchContext(MissingPredicate(UUID.randomUUID()))
+      val context = queries.searchContext(MissingPredicate(util.UUID.randomUUID()))
       val countError = intercept[IllegalStateException](queries.count(classOf[BlogPost], context))
       assert(countError.getMessage.contains(classOf[UndiscoveredPredicate].getName))
       intercept[IllegalStateException] {
-        queries.entities(0, 10, classOf[BlogPost], classOf[BlogPost], context,
-          (query, root, _, _) => query.select(root))
+        queries.entities(
+          0,
+          10,
+          classOf[BlogPost],
+          classOf[BlogPost],
+          context,
+          (query, root, _, _) => query.select(root)
+        )
       }
     }
   }
@@ -131,8 +148,14 @@ class HibernateSearchSpec extends AnyFunSuite with BeforeAndAfterAll {
   test("a missing sort provider fails instead of returning silently unordered pages") {
     inTransaction { (queries, _) =>
       val error = intercept[IllegalStateException] {
-        queries.entities(0, 10, classOf[BlogPost], classOf[BlogPost],
-          queries.searchContext(MissingSort()), (query, root, _, _) => query.select(root))
+        queries.entities(
+          0,
+          10,
+          classOf[BlogPost],
+          classOf[BlogPost],
+          queries.searchContext(MissingSort()),
+          (query, root, _, _) => query.select(root)
+        )
       }
       assert(error.getMessage.contains(classOf[UndiscoveredSort].getName))
     }
@@ -140,11 +163,17 @@ class HibernateSearchSpec extends AnyFunSuite with BeforeAndAfterAll {
 
   test("internal callers cannot bypass the generic page bounds") {
     inTransaction { (queries, _) =>
-      val context = queries.searchContext(ById(UUID.randomUUID()))
+      val context = queries.searchContext(ById(util.UUID.randomUUID()))
       for ((index, limit) <- Seq((-1, 10), (0, 0), (0, 101))) {
         intercept[IllegalArgumentException] {
-          queries.entities(index, limit, classOf[BlogPost], classOf[BlogPost], context,
-            (query, root, _, _) => query.select(root))
+          queries.entities(
+            index,
+            limit,
+            classOf[BlogPost],
+            classOf[BlogPost],
+            context,
+            (query, root, _, _) => query.select(root)
+          )
         }
       }
     }

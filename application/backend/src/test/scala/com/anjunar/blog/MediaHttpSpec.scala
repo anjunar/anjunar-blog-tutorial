@@ -12,7 +12,7 @@ import java.net.http.{HttpClient, HttpRequest, HttpResponse}
 import java.nio.charset.StandardCharsets.UTF_8
 import java.sql.DriverManager
 import java.time.Duration
-import java.util.UUID
+import java.util
 import java.util.concurrent.{Callable, Executors, TimeUnit}
 import scala.collection.mutable
 import scala.util.Using
@@ -20,8 +20,8 @@ import scala.util.Using
 class MediaHttpSpec extends AnyFunSuite with BeforeAndAfterAll {
   private var server: UndertowCdiEmbeddedServer = null
   private var port = 0
-  private val accounts = mutable.Buffer.empty[UUID]
-  private val posts = mutable.Buffer.empty[UUID]
+  private val accounts = mutable.Buffer.empty[util.UUID]
+  private val posts = mutable.Buffer.empty[util.UUID]
   private val clients = mutable.Buffer.empty[HttpClient]
   private val password = "a long media test passphrase"
   private lazy val hash = PasswordHash.create(password)
@@ -34,7 +34,8 @@ class MediaHttpSpec extends AnyFunSuite with BeforeAndAfterAll {
   override protected def beforeAll(): Unit = {
     super.beforeAll()
     val socket = new ServerSocket(0, 1, InetAddress.getByName("127.0.0.1"))
-    port = try socket.getLocalPort finally socket.close()
+    port = try socket.getLocalPort
+    finally socket.close()
     server = ApplicationMain.start(port, security = SecurityConfig(false))
   }
 
@@ -43,7 +44,14 @@ class MediaHttpSpec extends AnyFunSuite with BeforeAndAfterAll {
     if (server != null) server.stop()
   } finally {
     Using.resource(connection()) { c =>
-      for ((table, field, ids) <- Seq(("blog_post_media", "post_id", posts), ("blog_post", "id", posts), ("blog_media", "owner_id", accounts), ("blog_account", "id", accounts)))
+      for (
+        (table, field, ids) <- Seq(
+          ("blog_post_media", "post_id", posts),
+          ("blog_post", "id", posts),
+          ("blog_media", "owner_id", accounts),
+          ("blog_account", "id", accounts)
+        )
+      )
         Using.resource(c.prepareStatement(s"delete from public.$table where $field = ?")) { q =>
           ids.foreach { id => q.setObject(1, id); q.executeUpdate() }
         }
@@ -51,8 +59,11 @@ class MediaHttpSpec extends AnyFunSuite with BeforeAndAfterAll {
     super.afterAll()
   }
 
-  private final class Browser(role: Option[String] = Some("ADMIN"), protocol: HttpClient.Version = HttpClient.Version.HTTP_2) {
-    val id: UUID = UUID.randomUUID()
+  private final class Browser(
+    role: Option[String] = Some("ADMIN"),
+    protocol: HttpClient.Version = HttpClient.Version.HTTP_2
+  ) {
+    val id: util.UUID = util.UUID.randomUUID()
     val client = HttpClient.newBuilder().cookieHandler(new CookieManager(null, CookiePolicy.ACCEPT_ALL))
       .connectTimeout(Duration.ofSeconds(5)).version(protocol).build()
     clients += client
@@ -61,7 +72,8 @@ class MediaHttpSpec extends AnyFunSuite with BeforeAndAfterAll {
       accounts += id
       Using.resource(connection()) { c =>
         Using.resource(c.prepareStatement(
-          "insert into public.blog_account (id,version,email,role,password_hash,authentication_version,locked) values (?,0,?,?,?,0,false)")) { q =>
+          "insert into public.blog_account (id,version,email,role,password_hash,authentication_version,locked) values (?,0,?,?,?,0,false)"
+        )) { q =>
           q.setObject(1, id); q.setString(2, email); q.setString(3, value); q.setString(4, hash); q.executeUpdate()
         }
       }
@@ -71,24 +83,34 @@ class MediaHttpSpec extends AnyFunSuite with BeforeAndAfterAll {
 
     def csrf: String = obj(raw("auth/session")).getString("csrfToken")
 
-    def raw(path: String, method: String = "GET", bytes: Array[Byte] = Array.emptyByteArray,
-        contentType: String = "application/json", token: Option[String] = None, chunked: Boolean = false,
-        extra: Map[String, String] = Map.empty): HttpResponse[Array[Byte]] = {
+    def raw(
+      path: String,
+      method: String = "GET",
+      bytes: Array[Byte] = Array.emptyByteArray,
+      contentType: String = "application/json",
+      token: Option[String] = None,
+      chunked: Boolean = false,
+      extra: Map[String, String] = Map.empty
+    ): HttpResponse[Array[Byte]] = {
       val request = HttpRequest.newBuilder(URI.create(s"http://127.0.0.1:$port/service/$path"))
         .timeout(Duration.ofSeconds(20)).header("Accept", "*/*")
       if (method == "POST" || method == "PATCH") request.header("Content-Type", contentType)
       token.foreach(value => request.header("X-CSRF-Token", value))
       extra.foreach((name, value) => request.setHeader(name, value))
       val body = if (chunked) HttpRequest.BodyPublishers.ofInputStream(() => new ByteArrayInputStream(bytes))
-        else HttpRequest.BodyPublishers.ofByteArray(bytes)
+      else HttpRequest.BodyPublishers.ofByteArray(bytes)
       client.send(request.method(method, body).build(), HttpResponse.BodyHandlers.ofByteArray())
     }
 
     def json(path: String, method: String = "GET", body: String = ""): HttpResponse[Array[Byte]] =
       raw(path, method, body.getBytes(UTF_8), token = Option.when(method != "GET")(csrf))
 
-    def upload(bytes: Array[Byte] = TestImages.bytes(), contentType: String = "image/png",
-        chunked: Boolean = false, extra: Map[String, String] = Map.empty): HttpResponse[Array[Byte]] =
+    def upload(
+      bytes: Array[Byte] = TestImages.bytes(),
+      contentType: String = "image/png",
+      chunked: Boolean = false,
+      extra: Map[String, String] = Map.empty
+    ): HttpResponse[Array[Byte]] =
       raw("editorial/media", "POST", bytes, contentType, Some(csrf), chunked, extra)
 
     def image(): JsonObject = {
@@ -104,33 +126,48 @@ class MediaHttpSpec extends AnyFunSuite with BeforeAndAfterAll {
   private def ref(media: JsonObject): String = s"""{"id":"${media.getString("id")}"}"""
   private def stored(id: String): Boolean = Using.resource(connection()) { c =>
     Using.resource(c.prepareStatement("select 1 from public.blog_media where id = ?")) { q =>
-      q.setObject(1, UUID.fromString(id))
+      q.setObject(1, util.UUID.fromString(id))
       Using.resource(q.executeQuery())(_.next())
     }
   }
   private def age(id: String): Unit = Using.resource(connection()) { c =>
-    Using.resource(c.prepareStatement("update public.blog_media set created_at = now() - interval '2 days' where id = ?")) { q =>
-      q.setObject(1, UUID.fromString(id)); q.executeUpdate()
+    Using.resource(
+      c.prepareStatement("update public.blog_media set created_at = now() - interval '2 days' where id = ?")
+    ) { q =>
+      q.setObject(1, util.UUID.fromString(id)); q.executeUpdate()
     }
   }
   private def create(browser: Browser, suffix: String = ""): JsonObject = {
-    val response = browser.json("editorial/posts", "POST",
-      s"""{"slug":"image-${UUID.randomUUID()}","title":"A post with an image","content":"A complete post"$suffix}""")
+    val response = browser.json(
+      "editorial/posts",
+      "POST",
+      s"""{"slug":"image-${util.UUID.randomUUID()}","title":"A post with an image","content":"A complete post"$suffix}"""
+    )
     assert(response.statusCode() == 201, text(response))
     val result = obj(response).getJsonObject("data")
-    posts += UUID.fromString(result.getString("id"))
+    posts += util.UUID.fromString(result.getString("id"))
     result
   }
   private def postPath(post: JsonObject): String = s"editorial/posts/${post.getString("id")}"
 
-  private def document(browser: Browser, post: JsonObject, content: String, format: String = "MARKDOWN"): HttpResponse[Array[Byte]] = {
+  private def document(
+    browser: Browser,
+    post: JsonObject,
+    content: String,
+    format: String = "MARKDOWN"
+  ): HttpResponse[Array[Byte]] = {
     val current = obj(browser.json(postPath(post))).getJsonObject("data")
     val encoded = content.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n")
-    browser.json(postPath(post), "PATCH",
-      s"""{"version":${current.value.get("version").value},"contentFormat":"$format","content":"$encoded"}""")
+    browser.json(
+      postPath(post),
+      "PATCH",
+      s"""{"version":${current.value.get("version").value},"contentFormat":"$format","content":"$encoded"}"""
+    )
   }
 
-  test("embedded images follow publication, preserve references on partial edits and become collectible after removal") {
+  test(
+    "embedded images follow publication, preserve references on partial edits and become collectible after removal"
+  ) {
     val owner = new Browser()
     val media = owner.image()
     val post = create(owner)
@@ -145,7 +182,8 @@ class MediaHttpSpec extends AnyFunSuite with BeforeAndAfterAll {
     age(mediaId)
     assert(text(owner.json("_test/media/cleanup?limit=100", "POST")) == "0")
     assert(stored(mediaId))
-    assert(owner.json(postPath(post), "PATCH", """{"version":1,"title":"A renamed Markdown post"}""").statusCode() == 200)
+    assert(owner.json(postPath(post), "PATCH", """{"version":1,"title":"A renamed Markdown post"}""").statusCode() ==
+      200)
     assert(owner.json(postPath(post) + "/publish", "POST").statusCode() == 200)
     assert(public.raw(source).statusCode() == 200)
     val detail = public.json(s"blog/posts/${post.getString("slug")}")
@@ -163,17 +201,26 @@ class MediaHttpSpec extends AnyFunSuite with BeforeAndAfterAll {
     val stranger = new Browser()
     val media = owner.image()
     val post = create(stranger)
-    for (id <- Seq(media.getString("id"), UUID.randomUUID().toString)) {
+    for (id <- Seq(media.getString("id"), util.UUID.randomUUID().toString)) {
       val response = document(stranger, post, s"![Private](/service/media/$id)")
       assert(response.statusCode() == 400, text(response))
     }
-    val injected = stranger.json(postPath(post), "PATCH",
-      """{"version":0,"title":"Must roll back","inlineMedia":[]}""")
+    val injected = stranger.json(
+      postPath(post),
+      "PATCH",
+      """{"version":0,"title":"Must roll back","inlineMedia":[]}"""
+    )
     assert(injected.statusCode() == 400, text(injected))
     val unchanged = obj(stranger.json(postPath(post))).getJsonObject("data")
     assert(unchanged.getString("content") == "A complete post")
     assert(unchanged.value.get("version").value == "0")
-    for (invalid <- Seq("<script>bad</script>", "[click](javascript:alert)", "![](/service/media/" + media.getString("id") + ")")) {
+    for (
+      invalid <- Seq(
+        "<script>bad</script>",
+        "[click](javascript:alert)",
+        "![](/service/media/" + media.getString("id") + ")"
+      )
+    ) {
       val result = document(owner, create(owner), invalid)
       assert(result.statusCode() == 400, text(result))
     }
@@ -223,11 +270,14 @@ class MediaHttpSpec extends AnyFunSuite with BeforeAndAfterAll {
 
   test("invalid type, body, dimensions and oversized chunked uploads do not persist") {
     val admin = new Browser(protocol = HttpClient.Version.HTTP_1_1)
-    for ((bytes, mime, status) <- Seq(
-      ("<svg/>".getBytes(UTF_8), "image/svg+xml", 415),
-      (Array.emptyByteArray, "image/png", 400),
-      (TestImages.bytes(), "image/jpeg", 400),
-      (TestImages.bytes(width = 8001, height = 1), "image/png", 400))) {
+    for (
+      (bytes, mime, status) <- Seq(
+        ("<svg/>".getBytes(UTF_8), "image/svg+xml", 415),
+        (Array.emptyByteArray, "image/png", 400),
+        (TestImages.bytes(), "image/jpeg", 400),
+        (TestImages.bytes(width = 8001, height = 1), "image/png", 400)
+      )
+    ) {
       val response = admin.upload(bytes, mime)
       assert(response.statusCode() == status, text(response))
     }
@@ -268,15 +318,21 @@ class MediaHttpSpec extends AnyFunSuite with BeforeAndAfterAll {
     val image = owner.image()
     val post = create(stranger)
     val target = postPath(post)
-    for (input <- Seq(
-      s""""coverImage":${ref(image)},"coverAlt":"Private image" """,
-      s""""coverImage":{"id":"${UUID.randomUUID()}"},"coverAlt":"Missing image" """)) {
+    for (
+      input <- Seq(
+        s""""coverImage":${ref(image)},"coverAlt":"Private image" """,
+        s""""coverImage":{"id":"${util.UUID.randomUUID()}"},"coverAlt":"Missing image" """
+      )
+    ) {
       val response = stranger.json(target, "PATCH", s"""{"version":0,"title":"Must roll back",$input}""")
       assert(response.statusCode() == 400, text(response))
     }
     val own = stranger.image()
-    assert(stranger.json(target, "PATCH",
-      s"""{"version":0,"title":"Must roll back","coverImage":{"id":"${own.getString("id")}","name":"Nested edit"}}""")
+    assert(stranger.json(
+      target,
+      "PATCH",
+      s"""{"version":0,"title":"Must roll back","coverImage":{"id":"${own.getString("id")}","name":"Nested edit"}}"""
+    )
       .statusCode() == 400)
     assert(stranger.json(target, "PATCH", s"""{"version":0,"coverImage":${ref(own)}}""").statusCode() == 400)
     val unchanged = obj(stranger.json(target)).getJsonObject("data")
@@ -329,35 +385,41 @@ class MediaHttpSpec extends AnyFunSuite with BeforeAndAfterAll {
     val pool = Executors.newSingleThreadExecutor()
     val token = owner.csrf
     try Using.resource(connection()) { c =>
-      c.setAutoCommit(false)
-      Using.resource(c.prepareStatement("select id from public.blog_media where id = ? for update")) { q =>
-        q.setObject(1, UUID.fromString(media.getString("id")))
-        Using.resource(q.executeQuery())(_.next())
-      }
-      Using.resource(c.prepareStatement("update public.blog_post set cover_image_id = ?, cover_alt = 'Concurrent cover' where id = ?")) { q =>
-        q.setObject(1, UUID.fromString(media.getString("id"))); q.setObject(2, UUID.fromString(post.getString("id")))
-        q.executeUpdate()
-      }
-      val pending = pool.submit(new Callable[HttpResponse[Array[Byte]]] {
-        override def call() = owner.raw("_test/media/cleanup?limit=100", "POST", token = Some(token))
-      })
-      val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5)
-      var waiting = false
-      while (!waiting && System.nanoTime() < deadline) {
-        Using.resource(connection()) { check =>
-          Using.resource(check.createStatement()) { q =>
-            Using.resource(q.executeQuery("select count(*) from pg_stat_activity where wait_event_type = 'Lock' and query like '%blog_media%'")) { rows =>
-              rows.next(); waiting = rows.getInt(1) > 0
+        c.setAutoCommit(false)
+        Using.resource(c.prepareStatement("select id from public.blog_media where id = ? for update")) { q =>
+          q.setObject(1, util.UUID.fromString(media.getString("id")))
+          Using.resource(q.executeQuery())(_.next())
+        }
+        Using.resource(c.prepareStatement(
+          "update public.blog_post set cover_image_id = ?, cover_alt = 'Concurrent cover' where id = ?"
+        )) { q =>
+          q.setObject(1, util.UUID.fromString(media.getString("id")));
+          q.setObject(2, util.UUID.fromString(post.getString("id")))
+          q.executeUpdate()
+        }
+        val pending = pool.submit(new Callable[HttpResponse[Array[Byte]]] {
+          override def call() = owner.raw("_test/media/cleanup?limit=100", "POST", token = Some(token))
+        })
+        val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5)
+        var waiting = false
+        while (!waiting && System.nanoTime() < deadline) {
+          Using.resource(connection()) { check =>
+            Using.resource(check.createStatement()) { q =>
+              Using.resource(q.executeQuery(
+                "select count(*) from pg_stat_activity where wait_event_type = 'Lock' and query like '%blog_media%'"
+              )) { rows =>
+                rows.next(); waiting = rows.getInt(1) > 0
+              }
             }
           }
+          if (!waiting) Thread.sleep(10)
         }
-        if (!waiting) Thread.sleep(10)
+        assert(waiting, "Cleanup should wait for the media-row lock")
+        c.commit()
+        val result = pending.get(10, TimeUnit.SECONDS)
+        assert(result.statusCode() == 200 && text(result) == "0", text(result))
+        assert(stored(media.getString("id")))
       }
-      assert(waiting, "Cleanup should wait for the media-row lock")
-      c.commit()
-      val result = pending.get(10, TimeUnit.SECONDS)
-      assert(result.statusCode() == 200 && text(result) == "0", text(result))
-      assert(stored(media.getString("id")))
-    } finally pool.shutdownNow()
+    finally pool.shutdownNow()
   }
 }

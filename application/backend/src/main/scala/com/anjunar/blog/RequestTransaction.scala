@@ -64,8 +64,7 @@ class RequestTransaction {
         if (successful && !readOnly) {
           transaction.commit()
           committed = true
-        }
-        else if (transaction.getStatus != Status.STATUS_NO_TRANSACTION) transaction.rollback()
+        } else if (transaction.getStatus != Status.STATUS_NO_TRANSACTION) transaction.rollback()
       } catch {
         case NonFatal(error) =>
           try {

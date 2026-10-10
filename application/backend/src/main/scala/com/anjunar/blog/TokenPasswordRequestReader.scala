@@ -14,15 +14,24 @@ import java.nio.charset.StandardCharsets.UTF_8
 import scala.jdk.CollectionConverters.*
 import scala.util.control.NonFatal
 
-
 @Provider
 @Consumes(Array(MediaType.APPLICATION_JSON))
 class TokenPasswordRequestReader extends MessageBodyReader[TokenPasswordRequest] {
-  override def isReadable(clazz: Class[?], genericType: Type,
-      annotations: Array[Annotation], mediaType: MediaType): Boolean = clazz == classOf[TokenPasswordRequest]
+  override def isReadable(
+    clazz: Class[?],
+    genericType: Type,
+    annotations: Array[Annotation],
+    mediaType: MediaType
+  ): Boolean = clazz == classOf[TokenPasswordRequest]
 
-  override def readFrom(clazz: Class[TokenPasswordRequest], genericType: Type, annotations: Array[Annotation],
-      mediaType: MediaType, headers: MultivaluedMap[String, String], stream: InputStream): TokenPasswordRequest = {
+  override def readFrom(
+    clazz: Class[TokenPasswordRequest],
+    genericType: Type,
+    annotations: Array[Annotation],
+    mediaType: MediaType,
+    headers: MultivaluedMap[String, String],
+    stream: InputStream
+  ): TokenPasswordRequest = {
     val values = AuthJson.read(stream, Map("token" -> 43, "password" -> 128))
     if (!AccountToken.wellFormed(values("token")) || !PasswordHash.acceptable(values("password")))
       throw new BadRequestException("Use a valid link and a password with 15 to 128 characters")

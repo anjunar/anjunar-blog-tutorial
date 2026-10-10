@@ -10,7 +10,7 @@ import java.net.{CookieManager, CookiePolicy, InetAddress, ServerSocket, URI}
 import java.net.http.{HttpClient, HttpRequest, HttpResponse}
 import java.sql.{Connection, DriverManager}
 import java.time.Duration
-import java.util.UUID
+import java.util
 import java.util.concurrent.{Callable, Executors}
 import scala.collection.mutable
 import scala.jdk.CollectionConverters.*
@@ -30,20 +30,24 @@ class AccountRecoverySpec extends AnyFunSuite with BeforeAndAfterAll with Before
     Using.resource(DriverManager.getConnection(config.url, config.user, config.password))(work)
   }
   private def email(): String = {
-    val value = s"recovery-${UUID.randomUUID()}@example.test"
+    val value = s"recovery-${util.UUID.randomUUID()}@example.test"
     owned += value
     value
   }
   override protected def beforeAll(): Unit = {
     super.beforeAll()
-    require(sys.env.get("BLOG_SMTP_HOST").contains("127.0.0.1") &&
-      sys.env.get("BLOG_SMTP_MODE").contains("local"), "Recovery tests require the local SMTP capture configuration")
+    require(
+      sys.env.get("BLOG_SMTP_HOST").contains("127.0.0.1") &&
+        sys.env.get("BLOG_SMTP_MODE").contains("local"),
+      "Recovery tests require the local SMTP capture configuration"
+    )
     smtp = new SmtpInbox(sys.env.getOrElse("BLOG_SMTP_PORT", "1025").toInt)
   }
   override protected def beforeEach(): Unit = {
     super.beforeEach()
     val socket = new ServerSocket(0, 1, InetAddress.getByName("127.0.0.1"))
-    port = try socket.getLocalPort finally socket.close()
+    port = try socket.getLocalPort
+    finally socket.close()
     server = ApplicationMain.start(port, security = SecurityConfig(false))
   }
   override protected def afterEach(): Unit = {
@@ -67,13 +71,19 @@ class AccountRecoverySpec extends AnyFunSuite with BeforeAndAfterAll with Before
     private val cookies = new CookieManager(null, CookiePolicy.ACCEPT_ALL)
     private val client = HttpClient.newBuilder().cookieHandler(cookies).build()
     clients += client
-    def send(path: String, body: Option[String] = None, csrf: String = "",
-        extra: Map[String, String] = Map.empty): HttpResponse[String] = {
+    def send(
+      path: String,
+      body: Option[String] = None,
+      csrf: String = "",
+      extra: Map[String, String] = Map.empty
+    ): HttpResponse[String] = {
       val builder = HttpRequest.newBuilder(URI.create(s"http://127.0.0.1:$port/service/auth/$path"))
         .timeout(Duration.ofSeconds(20)).header("Accept", "application/json")
       if (csrf.nonEmpty) builder.header("X-CSRF-Token", csrf)
       extra.foreach((key, value) => builder.setHeader(key, value))
-      body.foreach(value => builder.header("Content-Type", "application/json").POST(HttpRequest.BodyPublishers.ofString(value)))
+      body.foreach(value =>
+        builder.header("Content-Type", "application/json").POST(HttpRequest.BodyPublishers.ofString(value))
+      )
       client.send(builder.build(), HttpResponse.BodyHandlers.ofString())
     }
     def csrf(): String = JsonParser.parse(send("session").body()).asInstanceOf[JsonObject].getString("csrfToken")
@@ -115,11 +125,13 @@ class AccountRecoverySpec extends AnyFunSuite with BeforeAndAfterAll with Before
     assert(count("blog_account", value) == 0)
     assert(browser.login(value, password) == 401)
     database { connection =>
-      Using.resource(connection.prepareStatement("select digest from public.blog_account_token where email = ?")) { query =>
-        query.setString(1, value)
-        Using.resource(query.executeQuery()) { rows =>
-          assert(rows.next()); assert(rows.getString(1) == AccountToken.digest(token)); assert(rows.getString(1) != token)
-        }
+      Using.resource(connection.prepareStatement("select digest from public.blog_account_token where email = ?")) {
+        query =>
+          query.setString(1, value)
+          Using.resource(query.executeQuery()) { rows =>
+            assert(rows.next()); assert(rows.getString(1) == AccountToken.digest(token));
+            assert(rows.getString(1) != token)
+          }
       }
     }
     val result = browser.post("confirm", completion(token))
@@ -141,8 +153,9 @@ class AccountRecoverySpec extends AnyFunSuite with BeforeAndAfterAll with Before
     assert(existing.statusCode() == 202 && absent.statusCode() == 202)
     assert(existing.body() == absent.body())
     database { connection =>
-      Using.resource(connection.prepareStatement("update public.blog_account set locked = true where email = ?")) { query =>
-        query.setString(1, value); query.executeUpdate()
+      Using.resource(connection.prepareStatement("update public.blog_account set locked = true where email = ?")) {
+        query =>
+          query.setString(1, value); query.executeUpdate()
       }
     }
     val locked = browser.post("forgot-password", address(value))
@@ -168,7 +181,9 @@ class AccountRecoverySpec extends AnyFunSuite with BeforeAndAfterAll with Before
     val value = email()
     val token = link(value, browser)
     database { connection =>
-      Using.resource(connection.prepareStatement("update public.blog_account_token set expires_at = now() - interval '1 second' where email = ?")) { query =>
+      Using.resource(connection.prepareStatement(
+        "update public.blog_account_token set expires_at = now() - interval '1 second' where email = ?"
+      )) { query =>
         query.setString(1, value); query.executeUpdate()
       }
     }
@@ -200,8 +215,9 @@ class AccountRecoverySpec extends AnyFunSuite with BeforeAndAfterAll with Before
       val value = registered(browser)
       val token = link(value, browser, "forgot-password")
       database { connection =>
-        Using.resource(connection.prepareStatement(s"update public.blog_account set $column where email = ?")) { query =>
-          query.setString(1, value); query.executeUpdate()
+        Using.resource(connection.prepareStatement(s"update public.blog_account set $column where email = ?")) {
+          query =>
+            query.setString(1, value); query.executeUpdate()
         }
       }
       assert(browser.post("reset-password", completion(token, replacement)).statusCode() == 400)
@@ -213,8 +229,16 @@ class AccountRecoverySpec extends AnyFunSuite with BeforeAndAfterAll with Before
     val value = email()
     for (endpoint <- Seq("register", "forgot-password", "confirm", "reset-password"))
       assert(browser.send(endpoint, Some("{}")).statusCode() == 403)
-    for (body <- Seq("{}", "null", "{broken", address("not-an-email"),
-      """{"email":"test@example.com","role":"ADMIN"}""", """{"email":"a@example.com,b@example.com"}"""))
+    for (
+      body <- Seq(
+        "{}",
+        "null",
+        "{broken",
+        address("not-an-email"),
+        """{"email":"test@example.com","role":"ADMIN"}""",
+        """{"email":"a@example.com,b@example.com"}"""
+      )
+    )
       assert(browser.post("register", body).statusCode() == 400)
     assert(browser.post("register", "x" * 4097).statusCode() == 413)
     assert(browser.post("register", address(value), Map("Sec-Fetch-Site" -> "cross-site")).statusCode() == 403)
@@ -246,8 +270,11 @@ class AccountRecoverySpec extends AnyFunSuite with BeforeAndAfterAll with Before
     val resetter = new Browser()
     val token = link(value, resetter, "forgot-password")
     for (failure <- Seq("writer", "commit")) {
-      assert(resetter.post("reset-password", completion(token, replacement),
-        Map("X-Test-Auth-Failure" -> failure)).statusCode() == 500)
+      assert(resetter.post(
+        "reset-password",
+        completion(token, replacement),
+        Map("X-Test-Auth-Failure" -> failure)
+      ).statusCode() == 500)
       assert(browser.send("me").statusCode() == 200)
       assert(count("blog_account_token", value) == 1)
     }
@@ -265,7 +292,8 @@ class AccountRecoverySpec extends AnyFunSuite with BeforeAndAfterAll with Before
     Using.resource(Executors.newFixedThreadPool(2)) { executor =>
       val tasks = Seq[Callable[Int]](
         () => first.send("confirm", Some(completion(token)), csrf1).statusCode(),
-        () => second.send("confirm", Some(completion(token)), csrf2).statusCode())
+        () => second.send("confirm", Some(completion(token)), csrf2).statusCode()
+      )
       val statuses = executor.invokeAll(tasks.asJava).asScala.map(_.get()).sorted
       assert(statuses == Seq(200, 400))
     }

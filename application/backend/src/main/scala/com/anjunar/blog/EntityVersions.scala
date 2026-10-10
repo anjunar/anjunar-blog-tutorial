@@ -9,10 +9,13 @@ object EntityVersions {
   def requireCurrent(post: EntityProvider, json: JsonObject): Unit = {
     val version = json.value.get("version") match {
       case number: JsonNumber => number.value.toLongOption.filter(_ >= 0)
-      case _ => None
+      case _                  => None
     }
     if (version.isEmpty) Problem.invalidField("version", "Send the nonnegative integer version you loaded.")
-    if (version.get != post.version) throw new ApiProblem(409,
-      if (post.isInstanceOf[BlogPost]) conflictDetail else "The entity changed. Reload it before saving again.", Problem.conflict)
+    if (version.get != post.version) throw new ApiProblem(
+      409,
+      if (post.isInstanceOf[BlogPost]) conflictDetail else "The entity changed. Reload it before saving again.",
+      Problem.conflict
+    )
   }
 }

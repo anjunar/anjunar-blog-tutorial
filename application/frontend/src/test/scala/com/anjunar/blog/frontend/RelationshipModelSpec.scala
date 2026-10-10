@@ -23,7 +23,8 @@ class RelationshipModelSpec extends AnyFunSuite {
     JsonMapper.deserialize[BlogPost](js.JSON.parse(
       """{"id":"post","version":0,"title":"First title","slug":"first-post","content":"Text",
         |"author":{"id":"one","version":0,"displayName":"Author one"},
-        |"tags":[{"id":"scala","version":0,"slug":"scala","name":"Scala"}]}""".stripMargin))
+        |"tags":[{"id":"scala","version":0,"slug":"scala","name":"Scala"}]}""".stripMargin
+    ))
 
   test("nested data maps into entities and clean relationships are omitted from PATCH") {
     val value = post()
@@ -83,12 +84,25 @@ class RelationshipModelSpec extends AnyFunSuite {
   test("late relationship errors do not attach to a newer selection") {
     val pending = Promise[BlogPostData]()
     val value = post()
-    val actions = new PostEditorActions(new BlogPostData(value,
-      Seq(new ApiLink("update", "/service/editorial/posts/post", "PATCH"))), (_, _) => pending.future)
+    val actions = new PostEditorActions(
+      new BlogPostData(
+        value,
+        Seq(new ApiLink("update", "/service/editorial/posts/post", "PATCH"))
+      ),
+      (_, _) => pending.future
+    )
     actions.save(() => ())
     value.author.set(account("two"))
-    pending.failure(new HttpFailure(400, Some(new ProblemDetails(status = 400, errors = Seq(
-      new FieldError(Seq("author"), "Old author rejected"), new FieldError(Seq("tags"), "Too many tags"))))))
+    pending.failure(new HttpFailure(
+      400,
+      Some(new ProblemDetails(
+        status = 400,
+        errors = Seq(
+          new FieldError(Seq("author"), "Old author rejected"),
+          new FieldError(Seq("tags"), "Too many tags")
+        )
+      ))
+    ))
     assert(actions.errors.get.map(_.path) == Seq(Seq("tags")))
     assert(actions.dirty.get && !actions.blocked.get)
     actions.dispose()
@@ -99,17 +113,22 @@ class RelationshipModelSpec extends AnyFunSuite {
     var mountedForm: Form[BlogPost] = null
     var selection: TagSelection = null
     val choices = ListProperty(js.Array(tag("scala"), tag("other")))
-    val root = Runtime.mount(new AbstractComponent {
-      val tagName = "div"
-      override def compose(cursor: Cursor): Unit = {
-        I18nRuntime.provide(I18nRuntime.managed(I18nConfig(
-          resolver = new I18nResolver(MessageCatalog.empty), supportedLocales = Seq(I18nLocale.En),
-          defaultLocale = I18nLocale.En)))(using this)
-        render(this, cursor) {
-          mountedForm = form(value) { selection = child(new TagSelection(choices)) {} }
+    val root = Runtime.mount(
+      new AbstractComponent {
+        val tagName = "div"
+        override def compose(cursor: Cursor): Unit = {
+          I18nRuntime.provide(I18nRuntime.managed(I18nConfig(
+            resolver = new I18nResolver(MessageCatalog.empty),
+            supportedLocales = Seq(I18nLocale.En),
+            defaultLocale = I18nLocale.En
+          )))(using this)
+          render(this, cursor) {
+            mountedForm = form(value) { selection = child(new TagSelection(choices)) {} }
+          }
         }
-      }
-    }, new SsrCursor())
+      },
+      new SsrCursor()
+    )
     try {
       assert(mountedForm.validateBindings().isEmpty)
       assert(selection.valueProperty.head.id.get == "scala")

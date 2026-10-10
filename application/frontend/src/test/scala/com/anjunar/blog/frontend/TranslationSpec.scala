@@ -10,10 +10,14 @@ class TranslationSpec extends AnyFunSuite {
   private given ExecutionContext = ExecutionContext.parasitic
   private def model(version: Int = 0): BlogPostTranslation =
     JsonMapper.deserialize[BlogPostTranslation](js.JSON.parse(
-      s"""{"id":"translation-id","version":$version,"locale":"de","title":"Deutscher Titel","summary":"Kurzfassung","content":"Inhalt","published":false}"""))
+      s"""{"id":"translation-id","version":$version,"locale":"de","title":"Deutscher Titel","summary":"Kurzfassung","content":"Inhalt","published":false}"""
+    ))
   private def link(rel: String = "update"): ApiLink =
-    new ApiLink(rel, "/service/editorial/posts/post-id/translations/translation-id",
-      if (rel == "update") "PATCH" else "POST")
+    new ApiLink(
+      rel,
+      "/service/editorial/posts/post-id/translations/translation-id",
+      if (rel == "update") "PATCH" else "POST"
+    )
 
   test("partial translation writes retain version zero and exclude publication and locale") {
     val value = model()
@@ -28,12 +32,14 @@ class TranslationSpec extends AnyFunSuite {
   test("public detail maps the selected entity without overwriting its English source") {
     val value = JsonMapper.deserialize[BlogPost](js.JSON.parse(
       """{"id":"post-id","version":0,"title":"English","content":"Source","contentLocale":"de","availableLocales":["en","de"],
-        |"translation":{"id":"translation-id","version":0,"title":"Deutsch","content":"Übersetzt","published":true}}""".stripMargin))
+        |"translation":{"id":"translation-id","version":0,"title":"Deutsch","content":"Übersetzt","published":true}}""".stripMargin
+    ))
     assert(value.title.get == "English" && value.translation.get.title.get == "Deutsch")
     assert(value.translation.get.summary.get == null && value.availableLocales.get.toSeq == Seq("en", "de"))
     value.title.set("Changed source")
     val body = value.writeBody()
-    assert(js.isUndefined(body.translation) && js.isUndefined(body.contentLocale) && js.isUndefined(body.availableLocales))
+    assert(js.isUndefined(body.translation) && js.isUndefined(body.contentLocale) &&
+      js.isUndefined(body.availableLocales))
   }
 
   test("new creation sends changed values without an ID and adopts server version and links") {
@@ -42,9 +48,12 @@ class TranslationSpec extends AnyFunSuite {
     value.title.set("Neuer Entwurf")
     value.content.set("Inhalt")
     var body: js.Dynamic = null
-    val actions = new TranslationActions(new TranslationData(value, Seq(link("create"))), (_, request) => {
-      body = request; pending.future
-    })
+    val actions = new TranslationActions(
+      new TranslationData(value, Seq(link("create"))),
+      (_, request) => {
+        body = request; pending.future
+      }
+    )
     actions.save()
     assert(js.isUndefined(body.id) && body.title.asInstanceOf[String] == "Neuer Entwurf")
     pending.success(new TranslationData(model(), Seq(link(), link("publish"))))
@@ -58,9 +67,12 @@ class TranslationSpec extends AnyFunSuite {
     val value = model()
     var calls = 0
     var body: js.Dynamic = null
-    val actions = new TranslationActions(new TranslationData(value, Seq(link())), (_, request) => {
-      calls += 1; body = request; pending.future
-    })
+    val actions = new TranslationActions(
+      new TranslationData(value, Seq(link())),
+      (_, request) => {
+        calls += 1; body = request; pending.future
+      }
+    )
     value.title.set("Gesendeter Titel")
     actions.save()
     value.title.set("Neuerer Titel")
@@ -77,9 +89,12 @@ class TranslationSpec extends AnyFunSuite {
     val pending = Promise[TranslationData]()
     val value = model()
     var body: js.Dynamic = null
-    val actions = new TranslationActions(new TranslationData(value, Seq(link("publish"))), (_, request) => {
-      body = request; pending.future
-    })
+    val actions = new TranslationActions(
+      new TranslationData(value, Seq(link("publish"))),
+      (_, request) => {
+        body = request; pending.future
+      }
+    )
     value.title.set("Noch nicht gespeichert")
     actions.run("publish")
     assert(body == null)
@@ -99,15 +114,26 @@ class TranslationSpec extends AnyFunSuite {
     val actions = new TranslationActions(new TranslationData(value, Seq(link())), (_, _) => pending.future)
     actions.save()
     value.title.set("Schon korrigiert")
-    pending.failure(new HttpFailure(400, Some(new ProblemDetails(status = 400, errors = Seq(
-      new FieldError(Seq("title"), "Invalid"), new FieldError(Seq("summary"), "Invalid summary"))))))
+    pending.failure(new HttpFailure(
+      400,
+      Some(new ProblemDetails(
+        status = 400,
+        errors = Seq(
+          new FieldError(Seq("title"), "Invalid"),
+          new FieldError(Seq("summary"), "Invalid summary")
+        )
+      ))
+    ))
     assert(actions.errors.get.map(_.path) == Seq(Seq("summary")) && !actions.blocked.get)
     actions.dispose()
     val conflict = Promise[TranslationData]()
     var calls = 0
-    val blocked = new TranslationActions(new TranslationData(value, Seq(link())), (_, _) => {
-      calls += 1; conflict.future
-    })
+    val blocked = new TranslationActions(
+      new TranslationData(value, Seq(link())),
+      (_, _) => {
+        calls += 1; conflict.future
+      }
+    )
     blocked.save()
     conflict.failure(new HttpFailure(409))
     blocked.save()

@@ -15,4 +15,3 @@ import scala.jdk.CollectionConverters.*
 import scala.util.control.NonFatal
 
 final case class TokenPasswordRequest(token: String, password: String)
-

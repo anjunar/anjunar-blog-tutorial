@@ -14,17 +14,19 @@ import scala.annotation.meta.field
 import scala.jdk.CollectionConverters.*
 
 final case class TagSearch(
-    @(JsonbProperty @field) @(RestSort @field)(classOf[TagSearch.ByName])
-    sort: String = "name",
-    override val index: Int = 0,
-    override val limit: Int = 20
+  @(JsonbProperty @field) @(RestSort @field)(classOf[TagSearch.ByName])
+  sort: String = "name",
+  override val index: Int = 0,
+  override val limit: Int = 20
 ) extends AbstractSearch
 
 object TagSearch {
   @ApplicationScoped
   class ByName extends SortProvider[TagSearch, BlogTag] {
     override def sort(context: Context[TagSearch, BlogTag]): util.List[Order] =
-      util.List.of(context.builder.asc(context.builder.lower(context.root.get(BlogTag.schema.name))),
-        context.builder.asc(context.root.get(BlogTag.schema.id)))
+      util.List.of(
+        context.builder.asc(context.builder.lower(context.root.get(BlogTag.schema.name))),
+        context.builder.asc(context.root.get(BlogTag.schema.id))
+      )
   }
 }

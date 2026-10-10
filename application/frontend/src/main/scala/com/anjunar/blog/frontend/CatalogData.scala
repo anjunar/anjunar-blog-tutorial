@@ -8,4 +8,3 @@ import scala.scalajs.js
 import scala.util.{Failure, Success, Try}
 
 final case class CatalogData(authors: AuthorTable, tags: BlogTagTable)
-

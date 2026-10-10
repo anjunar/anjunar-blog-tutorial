@@ -11,7 +11,7 @@ import java.net.http.{HttpClient, HttpRequest, HttpResponse}
 import java.nio.charset.StandardCharsets
 import java.sql.{DriverManager, Timestamp, Types}
 import java.time.{Duration, Instant}
-import java.util.UUID
+import java.util
 import scala.collection.mutable
 import scala.jdk.CollectionConverters.*
 import scala.util.Using
@@ -20,9 +20,9 @@ class PostSearchRestSpec extends AnyFunSuite with BeforeAndAfterAll {
   private var server: UndertowCdiEmbeddedServer = null
   private var port = 0
   private val clients = mutable.Buffer.empty[HttpClient]
-  private val accountIds = mutable.Buffer.empty[UUID]
-  private val ids = Vector.fill(4)(UUID.randomUUID()).sortBy(_.toString)
-  private val marker = "search" + UUID.randomUUID().toString.take(8)
+  private val accountIds = mutable.Buffer.empty[util.UUID]
+  private val ids = Vector.fill(4)(util.UUID.randomUUID()).sortBy(_.toString)
+  private val marker = "search" + util.UUID.randomUUID().toString.take(8)
   private val password = "a local search test passphrase"
   private lazy val hash = PasswordHash.create(password)
 
@@ -36,7 +36,8 @@ class PostSearchRestSpec extends AnyFunSuite with BeforeAndAfterAll {
     Using.resource(connection()) { c =>
       Using.resource(c.prepareStatement(
         "insert into public.blog_post (id, version, slug, title, content, summary, status, published_at) " +
-          "values (?, 0, ?, ?, ?, ?, ?, ?)")) { insert =>
+          "values (?, 0, ?, ?, ?, ?, ?, ?)"
+      )) { insert =>
         ids.zipWithIndex.foreach { (id, index) =>
           insert.setObject(1, id)
           insert.setString(2, "search-" + id)
@@ -45,13 +46,17 @@ class PostSearchRestSpec extends AnyFunSuite with BeforeAndAfterAll {
           insert.setString(5, if (index == 0) "summary-only-" + marker else null)
           insert.setString(6, if (index == 3) "DRAFT" else "PUBLISHED")
           if (index == 3) insert.setNull(7, Types.TIMESTAMP_WITH_TIMEZONE)
-          else insert.setTimestamp(7, Timestamp.from(Instant.parse("2026-09-27T10:00:00Z").minusSeconds(if (index == 2) 60 else 0)))
+          else insert.setTimestamp(
+            7,
+            Timestamp.from(Instant.parse("2026-09-27T10:00:00Z").minusSeconds(if (index == 2) 60 else 0))
+          )
           insert.executeUpdate()
         }
       }
     }
     val socket = new ServerSocket(0, 1, InetAddress.getByName("127.0.0.1"))
-    port = try socket.getLocalPort finally socket.close()
+    port = try socket.getLocalPort
+    finally socket.close()
     server = ApplicationMain.start(port, security = SecurityConfig(false))
   }
 
@@ -60,12 +65,13 @@ class PostSearchRestSpec extends AnyFunSuite with BeforeAndAfterAll {
     if (server != null) server.stop()
   } finally {
     try Using.resource(connection()) { c =>
-      for ((table, owned) <- Seq("blog_post" -> ids, "blog_account" -> accountIds.toVector)) {
-        Using.resource(c.prepareStatement(s"delete from public.$table where id = ?")) { delete =>
-          owned.foreach { id => delete.setObject(1, id); delete.executeUpdate() }
+        for ((table, owned) <- Seq("blog_post" -> ids, "blog_account" -> accountIds.toVector)) {
+          Using.resource(c.prepareStatement(s"delete from public.$table where id = ?")) { delete =>
+            owned.foreach { id => delete.setObject(1, id); delete.executeUpdate() }
+          }
         }
       }
-    } finally super.afterAll()
+    finally super.afterAll()
   }
 
   private def encode(value: String): String = URLEncoder.encode(value, StandardCharsets.UTF_8)
@@ -78,28 +84,34 @@ class PostSearchRestSpec extends AnyFunSuite with BeforeAndAfterAll {
 
     def get(path: String): HttpResponse[String] = client.send(
       HttpRequest.newBuilder(URI.create(s"http://127.0.0.1:$port$path"))
-        .timeout(Duration.ofSeconds(15)).GET().build(), HttpResponse.BodyHandlers.ofString())
+        .timeout(Duration.ofSeconds(15)).GET().build(),
+      HttpResponse.BodyHandlers.ofString()
+    )
 
     def list(suffix: String, editorial: Boolean = false): HttpResponse[String] =
       get((if (editorial) "/service/editorial/posts" else "/service/blog/posts") + suffix)
 
     def login(role: String): Unit = {
-      val id = UUID.randomUUID()
+      val id = util.UUID.randomUUID()
       val email = s"search-$id@example.test"
       accountIds += id
       Using.resource(connection()) { c =>
         Using.resource(c.prepareStatement(
           "insert into public.blog_account (id, version, email, role, password_hash, authentication_version, locked) " +
-            "values (?, 0, ?, ?, ?, 0, false)")) { insert =>
+            "values (?, 0, ?, ?, ?, 0, false)"
+        )) { insert =>
           insert.setObject(1, id); insert.setString(2, email); insert.setString(3, role); insert.setString(4, hash)
           insert.executeUpdate()
         }
       }
       val token = json(get("/service/auth/session")).getString("csrfToken")
       val body = new JsonObject().put("email", email).put("password", password).encode()
-      val response = client.send(HttpRequest.newBuilder(URI.create(s"http://127.0.0.1:$port/service/auth/login"))
-        .header("Content-Type", "application/json").header("X-CSRF-Token", token)
-        .POST(HttpRequest.BodyPublishers.ofString(body)).build(), HttpResponse.BodyHandlers.ofString())
+      val response = client.send(
+        HttpRequest.newBuilder(URI.create(s"http://127.0.0.1:$port/service/auth/login"))
+          .header("Content-Type", "application/json").header("X-CSRF-Token", token)
+          .POST(HttpRequest.BodyPublishers.ofString(body)).build(),
+        HttpResponse.BodyHandlers.ofString()
+      )
       assert(response.statusCode() == 200, response.body())
     }
   }
@@ -178,8 +190,20 @@ class PostSearchRestSpec extends AnyFunSuite with BeforeAndAfterAll {
 
   test("invalid bounds, text, status and sort values receive 400") {
     val browser = new Browser()
-    for (suffix <- Seq("?offset=-1", "?offset=2147483648", "?limit=0", "?limit=101", "?limit=abc",
-      "?sort=title%20desc", "?sort=content", "?status=unknown", "?q=" + ("a" * 101), "?q=a%00b")) {
+    for (
+      suffix <- Seq(
+        "?offset=-1",
+        "?offset=2147483648",
+        "?limit=0",
+        "?limit=101",
+        "?limit=abc",
+        "?sort=title%20desc",
+        "?sort=content",
+        "?status=unknown",
+        "?q=" + ("a" * 101),
+        "?q=a%00b"
+      )
+    ) {
       assert(browser.list(suffix).statusCode() == 400, suffix)
     }
     assert(browser.list("?q=" + ("a" * 100)).statusCode() == 200)

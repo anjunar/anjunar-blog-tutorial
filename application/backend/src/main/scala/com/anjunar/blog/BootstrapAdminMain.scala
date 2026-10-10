@@ -5,14 +5,16 @@ import jakarta.enterprise.inject.se.SeContainerInitializer
 import jakarta.persistence.EntityManager
 
 import java.lang
-import java.util.UUID
+import java.util
 import scala.util.Using
 
 object BootstrapAdminMain {
   def main(args: Array[String]): Unit = {
     require(args.isEmpty, "Use BLOG_ADMIN_EMAIL and BLOG_ADMIN_PASSWORD, not command-line credentials")
-    val email = sys.env.getOrElse("BLOG_ADMIN_EMAIL", throw new IllegalArgumentException("BLOG_ADMIN_EMAIL is required"))
-    val password = sys.env.getOrElse("BLOG_ADMIN_PASSWORD", throw new IllegalArgumentException("BLOG_ADMIN_PASSWORD is required"))
+    val email =
+      sys.env.getOrElse("BLOG_ADMIN_EMAIL", throw new IllegalArgumentException("BLOG_ADMIN_EMAIL is required"))
+    val password =
+      sys.env.getOrElse("BLOG_ADMIN_PASSWORD", throw new IllegalArgumentException("BLOG_ADMIN_PASSWORD is required"))
     Using.resource(SeContainerInitializer.newInstance().initialize()) { container =>
       val context = container.select(classOf[RequestContextController]).get()
       context.activate()

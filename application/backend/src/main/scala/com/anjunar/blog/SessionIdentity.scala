@@ -11,7 +11,7 @@ import jakarta.ws.rs.core.Response
 import java.nio.charset.StandardCharsets.UTF_8
 import java.security.{MessageDigest, SecureRandom}
 import java.time.Instant
-import java.util.{Base64, UUID}
+import java.util
 import scala.compiletime.uninitialized
 
 object SessionIdentity {
@@ -22,7 +22,7 @@ object SessionIdentity {
   def newToken(): String = {
     val bytes = new Array[Byte](32)
     random.nextBytes(bytes)
-    Base64.getUrlEncoder.withoutPadding().encodeToString(bytes)
+    util.Base64.getUrlEncoder.withoutPadding().encodeToString(bytes)
   }
 }
 
@@ -88,8 +88,10 @@ class SessionIdentity {
     val supplied = Option(request.getHeader("X-CSRF-Token")).getOrElse("")
     val expected = Option(request.getSession(false))
       .flatMap(session => Option(session.getAttribute(SessionIdentity.csrfKey))).map(_.toString)
-    if (request.getHeader("Sec-Fetch-Site") == "cross-site" || supplied.length > 128 ||
-        !expected.exists(token => MessageDigest.isEqual(token.getBytes(UTF_8), supplied.getBytes(UTF_8))))
+    if (
+      request.getHeader("Sec-Fetch-Site") == "cross-site" || supplied.length > 128 ||
+      !expected.exists(token => MessageDigest.isEqual(token.getBytes(UTF_8), supplied.getBytes(UTF_8)))
+    )
       throw new WebApplicationException(Response.status(403).build())
   }
 

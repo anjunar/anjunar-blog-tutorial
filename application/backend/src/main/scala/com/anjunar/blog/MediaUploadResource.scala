@@ -10,7 +10,6 @@ import jakarta.ws.rs.core.{GenericEntity, MediaType, Response}
 
 import java.io.InputStream
 import java.util
-import java.util.UUID
 import scala.compiletime.uninitialized
 
 @Path("/editorial/media")
@@ -22,12 +21,18 @@ class MediaUploadResource {
 
   @POST @Consumes(Array("image/jpeg", "image/png")) @Produces(Array(MediaType.APPLICATION_JSON))
   @EntityGraph("Media.detail")
-  def upload(@HeaderParam("Content-Type") contentType: String,
-      @HeaderParam("X-File-Name") name: String, input: InputStream): Response = {
+  def upload(
+    @HeaderParam("Content-Type") contentType: String,
+    @HeaderParam("X-File-Name") name: String,
+    input: InputStream
+  ): Response = {
     val media = lifecycle.create(ImageContent.read(input, contentType), name)
     val path = s"/service/media/${media.id}"
-    val result = new Data(media, Schema.forGraph(Media.schema, manager.getEntityGraph("Media.detail")),
-      util.List.of(new Link("self", path, "GET", "Media")))
+    val result = new Data(
+      media,
+      Schema.forGraph(Media.schema, manager.getEntityGraph("Media.detail")),
+      util.List.of(new Link("self", path, "GET", "Media"))
+    )
     Response.status(201).header("Location", path).entity(new GenericEntity[Data[Media]](result) {}).build()
   }
 }

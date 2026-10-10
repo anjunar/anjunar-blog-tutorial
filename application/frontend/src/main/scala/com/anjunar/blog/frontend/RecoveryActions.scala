@@ -8,8 +8,9 @@ import scala.concurrent.ExecutionContext
 import scala.scalajs.js
 import scala.util.{Failure, Success}
 
-final class RecoveryActions(endpoint: String, initialToken: Option[String], accounts: AccountService)
-    (using ExecutionContext) {
+final class RecoveryActions(endpoint: String, initialToken: Option[String], accounts: AccountService)(using
+  ExecutionContext
+) {
   val fields = new RecoveryFields()
   val busy: Property[Boolean] = Property(false)
   val done: Property[Boolean] = Property(false)
@@ -23,17 +24,18 @@ final class RecoveryActions(endpoint: String, initialToken: Option[String], acco
       error.set(0)
       val command = token match {
         case Some(value) => JsonMapper.serialize(new TokenPasswordCommand(value, fields.password.get))
-        case None => JsonMapper.serialize(new EmailCommand(fields.email.get))
+        case None        => JsonMapper.serialize(new EmailCommand(fields.email.get))
       }
       fields.password.set("")
       accounts.session().flatMap(state =>
-        HttpJson.post[RecoveryResult](s"/service/auth/$endpoint", command, state.csrfToken))
+        HttpJson.post[RecoveryResult](s"/service/auth/$endpoint", command, state.csrfToken)
+      )
         .onComplete { result =>
           if (!disposed) {
             result match {
-              case Success(_) => done.set(true); token = None
+              case Success(_)                    => done.set(true); token = None
               case Failure(failure: HttpFailure) => error.set(failure.status)
-              case Failure(_) => error.set(503)
+              case Failure(_)                    => error.set(503)
             }
             busy.set(false)
           }
@@ -48,4 +50,3 @@ final class RecoveryActions(endpoint: String, initialToken: Option[String], acco
     fields.password.set("")
   }
 }
-

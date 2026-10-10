@@ -25,7 +25,8 @@ object Main {
 
   @JSExportTopLevel("boot")
   def boot(): js.Promise[Unit] = booted.getOrElse {
-    val result = try start().toJSPromise catch { case NonFatal(error) => Future.failed[Unit](error).toJSPromise }
+    val result = try start().toJSPromise
+    catch { case NonFatal(error) => Future.failed[Unit](error).toJSPromise }
     booted = Some(result)
     result
   }
@@ -45,7 +46,7 @@ object Main {
     }
 
     val result = embedded match {
-      case None => mountFresh() // Account/editorial pages and the shell-only test configuration.
+      case None       => mountFresh() // Account/editorial pages and the shell-only test configuration.
       case Some(node) =>
         val async = new AsyncRenderContext()
         var page: Option[BlogPage] = None

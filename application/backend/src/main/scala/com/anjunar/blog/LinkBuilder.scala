@@ -7,7 +7,6 @@ import jakarta.ws.rs.core.UriBuilder
 
 import java.lang.reflect.Method
 import java.util
-import java.util.Locale
 import java.util.concurrent.ConcurrentHashMap
 import scala.quoted.*
 
@@ -18,10 +17,13 @@ class LinkBuilder(val href: String, var rel: String, val method: String, val fun
   val variables: util.Map[String, Any] = new util.HashMap[String, Any]()
 
   def withVariable(name: String, value: Any): LinkBuilder = {
-    if (value != null) variables.put(name, value match {
-      case entity: EntityProvider => entity.id
-      case other => other
-    })
+    if (value != null) variables.put(
+      name,
+      value match {
+        case entity: EntityProvider => entity.id
+        case other                  => other
+      }
+    )
     this
   }
 
@@ -45,7 +47,10 @@ class LinkBuilder(val href: String, var rel: String, val method: String, val fun
 
     val linkId =
       if (!withId || function == null) null
-      else function.getDeclaringClass.getSimpleName.replaceAll("([a-z0-9])([A-Z])", "$1-$2").toLowerCase(Locale.ROOT).stripSuffix("-resource") + "-" + function.getName
+      else function.getDeclaringClass.getSimpleName.replaceAll(
+        "([a-z0-9])([A-Z])",
+        "$1-$2"
+      ).toLowerCase(util.Locale.ROOT).stripSuffix("-resource") + "-" + function.getName
 
     new Link(actualRel, resolveHref(), method, linkId)
   }
@@ -61,11 +66,14 @@ object LinkBuilder {
   private val methodCache = new ConcurrentHashMap[(String, String), Method]()
 
   def getMethod(className: String, methodName: String): Method =
-    methodCache.computeIfAbsent((className, methodName), _ => {
-      val matches = Class.forName(className).getMethods.filter(_.getName == methodName)
-      require(matches.length == 1, s"Link endpoints must have a unique method name: $className.$methodName")
-      matches.head
-    })
+    methodCache.computeIfAbsent(
+      (className, methodName),
+      _ => {
+        val matches = Class.forName(className).getMethods.filter(_.getName == methodName)
+        require(matches.length == 1, s"Link endpoints must have a unique method name: $className.$methodName")
+        matches.head
+      }
+    )
 
   inline def create[C](inline call: C => Any): LinkBuilder =
     ${ createMacroImpl[C]('call) }
@@ -133,12 +141,12 @@ object LinkBuilder {
 
     def search(term: Term): (Symbol, List[Term]) = term match {
       case Inlined(_, _, inner) => search(inner)
-      case Lambda(_, body) => search(body)
-      case Block(Nil, last) => search(last)
-      case Typed(inner, _) => search(inner)
-      case Apply(fun, args) => (fun.symbol, args)
-      case Select(_, _) => (term.symbol, Nil)
-      case _ =>
+      case Lambda(_, body)      => search(body)
+      case Block(Nil, last)     => search(last)
+      case Typed(inner, _)      => search(inner)
+      case Apply(fun, args)     => (fun.symbol, args)
+      case Select(_, _)         => (term.symbol, Nil)
+      case _                    =>
         report.errorAndAbort(s"Unsupported link expression: ${term.show}. Use _.method(...).")
     }
 
@@ -153,10 +161,10 @@ object LinkBuilder {
     val methodPath = extractPathAnnotation(methodSym)
 
     val mapping = methodSym.annotations.collectFirst {
-      case ann if ann.tpe <:< TypeRepr.of[GET] => ("GET", mergePath(classPath, methodPath))
-      case ann if ann.tpe <:< TypeRepr.of[POST] => ("POST", mergePath(classPath, methodPath))
-      case ann if ann.tpe <:< TypeRepr.of[PUT] => ("PUT", mergePath(classPath, methodPath))
-      case ann if ann.tpe <:< TypeRepr.of[PATCH] => ("PATCH", mergePath(classPath, methodPath))
+      case ann if ann.tpe <:< TypeRepr.of[GET]    => ("GET", mergePath(classPath, methodPath))
+      case ann if ann.tpe <:< TypeRepr.of[POST]   => ("POST", mergePath(classPath, methodPath))
+      case ann if ann.tpe <:< TypeRepr.of[PUT]    => ("PUT", mergePath(classPath, methodPath))
+      case ann if ann.tpe <:< TypeRepr.of[PATCH]  => ("PATCH", mergePath(classPath, methodPath))
       case ann if ann.tpe <:< TypeRepr.of[DELETE] => ("DELETE", mergePath(classPath, methodPath))
     }
 
@@ -180,12 +188,14 @@ object LinkBuilder {
     if (combined.startsWith("/")) combined else "/" + combined
   }
 
-  private def extractParameters(using q: Quotes)(methodSym: q.reflect.Symbol, argExprs: List[Expr[Any]]): List[(String, Expr[Any])] = {
+  private def extractParameters(using
+    q: Quotes
+  )(methodSym: q.reflect.Symbol, argExprs: List[Expr[Any]]): List[(String, Expr[Any])] = {
     import q.reflect.*
     val params = methodSym.paramSymss.flatten
     params.zip(argExprs).map { (param, expr) =>
       val name = param.annotations.collectFirst {
-        case ann if ann.tpe <:< TypeRepr.of[PathParam] => extractAnnotationValue(ann)
+        case ann if ann.tpe <:< TypeRepr.of[PathParam]  => extractAnnotationValue(ann)
         case ann if ann.tpe <:< TypeRepr.of[QueryParam] => extractAnnotationValue(ann)
       }.flatten.getOrElse(param.name)
       (name, expr)
@@ -196,9 +206,9 @@ object LinkBuilder {
     import q.reflect.*
     ann match {
       case Apply(_, args) => args.collectFirst {
-        case NamedArg("value" | "name", Literal(StringConstant(v))) => v
-        case Literal(StringConstant(v)) => v
-      }
+          case NamedArg("value" | "name", Literal(StringConstant(v))) => v
+          case Literal(StringConstant(v))                             => v
+        }
       case _ => None
     }
   }
@@ -210,7 +220,7 @@ object LinkBuilder {
     val allowed = policy match {
       case EndpointPolicy.Public => true
       case EndpointPolicy.Denied => false
-      case _ => policy.allows(RuntimeContext.bean(classOf[CallerAccess]).hasRole)
+      case _                     => policy.allows(RuntimeContext.bean(classOf[CallerAccess]).hasRole)
     }
     if (allowed) {
       new LinkBuilder(href, null, httpMethod, javaMethod)

@@ -27,7 +27,8 @@ class SsrRendererSpec extends AnyFunSuite {
 
   private def withRenderer(test: (SsrRenderer, AtomicBoolean) => Unit): Unit = {
     val reservation = new ServerSocket(0, 1, InetAddress.getByName("127.0.0.1"))
-    val port = try reservation.getLocalPort finally reservation.close()
+    val port = try reservation.getLocalPort
+    finally reservation.close()
     val anonymous = new AtomicBoolean()
     val server = Undertow.builder().addHttpListener(port, "127.0.0.1")
       .setHandler(exchange => {
@@ -62,8 +63,13 @@ class SsrRendererSpec extends AnyFunSuite {
 
   test("the bridge rejects arbitrary origins, traversal, private endpoints and fragments") {
     withRenderer { (renderer, _) =>
-      Seq("http://example.com/service/blog/posts", "//example.com/service/blog/posts",
-        "/service/auth/session", "/service/blog/posts/../editorial", "/service/blog/posts#fragment")
+      Seq(
+        "http://example.com/service/blog/posts",
+        "//example.com/service/blog/posts",
+        "/service/auth/session",
+        "/service/blog/posts/../editorial",
+        "/service/blog/posts#fragment"
+      )
         .foreach { path =>
           intercept[ExecutionException](renderer.render("/fetch?" + path))
         }

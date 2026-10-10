@@ -7,6 +7,7 @@ import ui.json.{JsonId, JsonMapper, JsonProperty}
 import scala.annotation.meta.field
 import scala.scalajs.js
 
-final class BlogTagData(var data: BlogTag = null,
-    @(JsonProperty @field)("$links") var links: Seq[ApiLink] = Seq.empty)
-
+final class BlogTagData(
+  var data: BlogTag = null,
+  @(JsonProperty @field)("$links") var links: Seq[ApiLink] = Seq.empty
+)

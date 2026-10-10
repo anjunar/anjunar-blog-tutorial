@@ -10,7 +10,7 @@ import java.net.{InetAddress, ServerSocket, URI}
 import java.net.http.{HttpClient, HttpRequest, HttpResponse}
 import java.sql.{DriverManager, Timestamp, Types}
 import java.time.{Duration, Instant}
-import java.util.UUID
+import java.util
 import scala.jdk.CollectionConverters.*
 import scala.util.Using
 
@@ -20,8 +20,8 @@ class BlogPostsRestSpec extends AnyFunSuite with BeforeAndAfterAll {
   private var port = 0
   private var previousSize = 0L
   private var publicationTime: Instant = null
-  private val publishedIds = Vector.fill(3)(UUID.randomUUID()).sortBy(_.toString)
-  private val draftId = UUID.randomUUID()
+  private val publishedIds = Vector.fill(3)(util.UUID.randomUUID()).sortBy(_.toString)
+  private val draftId = util.UUID.randomUUID()
   private val ownedIds = publishedIds :+ draftId
   private val content = "A complete post: \"Hello, readers!\"\nGrüße from the tutorial."
   private val listFields = Set("id", "version", "slug", "title", "summary", "status", "publishedAt", "contentLocale")
@@ -32,14 +32,15 @@ class BlogPostsRestSpec extends AnyFunSuite with BeforeAndAfterAll {
     DriverManager.getConnection(config.url, config.user, config.password)
   }
 
-  private def slug(id: UUID): String = s"rest-test-$id"
+  private def slug(id: util.UUID): String = s"rest-test-$id"
 
   override protected def beforeAll(): Unit = {
     super.beforeAll()
     Using.resource(connection()) { connection =>
       Using.resource(connection.createStatement()) { query =>
         Using.resource(query.executeQuery(
-            "select count(*), max(published_at) from public.blog_post where status = 'PUBLISHED'")) { result =>
+          "select count(*), max(published_at) from public.blog_post where status = 'PUBLISHED'"
+        )) { result =>
           result.next()
           previousSize = result.getLong(1)
           publicationTime = Option(result.getTimestamp(2)).map(_.toInstant)
@@ -48,9 +49,10 @@ class BlogPostsRestSpec extends AnyFunSuite with BeforeAndAfterAll {
       }
       // Put this suite's rows first without changing pre-existing posts.
       Using.resource(connection.prepareStatement(
-          """insert into public.blog_post
+        """insert into public.blog_post
             |(id, version, slug, title, content, summary, status, published_at)
-            |values (?, 0, ?, ?, ?, ?, ?, ?)""".stripMargin)) { insert =>
+            |values (?, 0, ?, ?, ?, ?, ?, ?)""".stripMargin
+      )) { insert =>
         for (id <- ownedIds) {
           val published = id != draftId
           insert.setObject(1, id)
@@ -68,7 +70,8 @@ class BlogPostsRestSpec extends AnyFunSuite with BeforeAndAfterAll {
       }
     }
     val reservation = new ServerSocket(0, 1, InetAddress.getByName("127.0.0.1"))
-    port = try reservation.getLocalPort finally reservation.close()
+    port = try reservation.getLocalPort
+    finally reservation.close()
     server = ApplicationMain.start(port)
     client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build()
   }
@@ -81,13 +84,13 @@ class BlogPostsRestSpec extends AnyFunSuite with BeforeAndAfterAll {
         if (server != null) server.stop()
       } finally {
         try Using.resource(connection()) { connection =>
-          Using.resource(connection.prepareStatement("delete from public.blog_post where id = ?")) { delete =>
-            for (id <- ownedIds) {
-              delete.setObject(1, id)
-              delete.executeUpdate()
+            Using.resource(connection.prepareStatement("delete from public.blog_post where id = ?")) { delete =>
+              for (id <- ownedIds) {
+                delete.setObject(1, id)
+                delete.executeUpdate()
+              }
             }
           }
-        }
         finally super.afterAll()
       }
     }
@@ -152,11 +155,14 @@ class BlogPostsRestSpec extends AnyFunSuite with BeforeAndAfterAll {
     assert(post.getString("content") == content)
     assert(post.getString("publishedAt") == publicationTime.toString)
     assert(post.value.get("version").value == "0")
-    assertSchema(wrapper, detailFields ++ Set("author", "tags", "coverImage", "coverAlt", "contentFormat", "translation"))
+    assertSchema(
+      wrapper,
+      detailFields ++ Set("author", "tags", "coverImage", "coverAlt", "contentFormat", "translation")
+    )
   }
 
   test("draft and unknown slugs both return 404 without disclosing post content") {
-    for (id <- Seq(draftId, UUID.randomUUID())) {
+    for (id <- Seq(draftId, util.UUID.randomUUID())) {
       val response = request(s"/${slug(id)}")
       assert(response.statusCode() == 404)
       assert(!response.body().contains(content))
@@ -164,7 +170,9 @@ class BlogPostsRestSpec extends AnyFunSuite with BeforeAndAfterAll {
   }
 
   test("invalid paging bounds and nonnumeric query values return 400") {
-    for (query <- Seq("?offset=-1", "?limit=0", "?limit=101", "?limit=abc", "?offset=abc", "?limit=2147483648", "?limit=")) {
+    for (
+      query <- Seq("?offset=-1", "?limit=0", "?limit=101", "?limit=abc", "?offset=abc", "?limit=2147483648", "?limit=")
+    ) {
       assert(request(query).statusCode() == 400, query)
     }
   }

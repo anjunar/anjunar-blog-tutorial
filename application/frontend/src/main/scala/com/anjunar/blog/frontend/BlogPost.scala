@@ -50,9 +50,17 @@ final class BlogPost {
   def editableFields: Seq[Property[String]] = Seq(slug, title, content, summary, coverAlt, contentFormat)
 
   @JsonIgnore()
-  def snapshot: PostSnapshot = PostSnapshot(slug.get, title.get, content.get, summary.get,
-    Option(author.get).map(_.id.get), tags.toSeq.map(_.id.get).toSet,
-    coverAlt.get, Option(coverImage.get).map(_.id.get), contentFormat.get)
+  def snapshot: PostSnapshot = PostSnapshot(
+    slug.get,
+    title.get,
+    content.get,
+    summary.get,
+    Option(author.get).map(_.id.get),
+    tags.toSeq.map(_.id.get).toSet,
+    coverAlt.get,
+    Option(coverImage.get).map(_.id.get),
+    contentFormat.get
+  )
 
   @JsonIgnore()
   def isDirty: Boolean = editableFields.exists(_.isDirty) || author.isDirty || tags.isDirty || coverImage.isDirty
@@ -103,4 +111,3 @@ final class BlogPost {
     publishedAt.set(saved.publishedAt.get)
   }
 }
-

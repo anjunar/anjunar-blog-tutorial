@@ -7,14 +7,19 @@ import jakarta.validation.constraints.{Email, NotBlank, Pattern}
 import java.nio.charset.StandardCharsets.UTF_8
 import java.security.MessageDigest
 import java.time.Instant
-import java.util.HexFormat
+import java.util
 
 @Entity
 @Access(AccessType.FIELD)
 @SchemaId("bc12e601")
-@Table(name = "blog_account_token", schema = "public",
-  uniqueConstraints = Array(new UniqueConstraint(name = "uq_account_token_email_purpose",
-    columnNames = Array("email", "purpose"))))
+@Table(
+  name = "blog_account_token",
+  schema = "public",
+  uniqueConstraints = Array(new UniqueConstraint(
+    name = "uq_account_token_email_purpose",
+    columnNames = Array("email", "purpose")
+  ))
+)
 class AccountToken {
   @Id
   @Column(length = 64, nullable = false)
@@ -47,7 +52,7 @@ object AccountToken {
   val lifetimeSeconds = 30 * 60L
 
   def digest(token: String): String =
-    HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(token.getBytes(UTF_8)))
+    util.HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(token.getBytes(UTF_8)))
 
   def wellFormed(token: String): Boolean =
     token != null && token.matches("[A-Za-z0-9_-]{43}")

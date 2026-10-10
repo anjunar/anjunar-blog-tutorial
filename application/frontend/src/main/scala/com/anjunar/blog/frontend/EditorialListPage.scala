@@ -41,7 +41,7 @@ final class EditorialListPage(table: BlogPostTable, search: PostSearch) extends 
       if (table.rows.isEmpty) {
         paragraph {
           text(if (search.filtered && table.size == 0) i18n"No posts match your search."
-            else i18n"No posts on this page.") {}
+          else i18n"No posts on this page.") {}
         }
         if (search.offset > 0) {
           routerLink(search.copy(offset = 0).url) { text(i18n"First matching page") {} }

@@ -31,10 +31,15 @@ final class BlogDocument(url: String, publicOrigin: String)(using ExecutionConte
       HeadEntry.script("client", "/main.js", "type" -> "module")
     )(using this)
     val stateHead = documentHead.handle(this)
-    addDisposable(initial.encoded.observe(value => stateHead.set(
-      HeadEntry("application-state", "script",
-        Seq("id" -> "application-state", "type" -> "application/json", "data-state" -> value))
-    )))
+    addDisposable(initial.encoded.observe(value =>
+      stateHead.set(
+        HeadEntry(
+          "application-state",
+          "script",
+          Seq("id" -> "application-state", "type" -> "application/json", "data-state" -> value)
+        )
+      )
+    ))
     render(this, cursor) {
       lang = if (url.takeWhile(_ != '?').split("/").lift(1).contains("de")) "de" else "en"
       head {}

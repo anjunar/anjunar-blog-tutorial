@@ -55,7 +55,9 @@ final class PostListPage(table: BlogPostTable, search: PostSearch, actions: Blog
         div {
           classes = "list-heading"
           div {
-            heading(2) { id = "posts-title"; text(if (search.query.nonEmpty) i18n"Search results" else i18n"Latest posts") {} }
+            heading(2) {
+              id = "posts-title"; text(if (search.query.nonEmpty) i18n"Search results" else i18n"Latest posts") {}
+            }
             paragraph {
               classes = "list-note"
               text(i18n"Showing ${I18n.named("count", table.rows.size)} of ${I18n.named("total", table.size)} posts") {}
@@ -74,8 +76,8 @@ final class PostListPage(table: BlogPostTable, search: PostSearch, actions: Blog
           paragraph {
             classes = "empty-state"
             text(if (table.size == 0 && search.filtered) i18n"No posts match your search."
-              else if (table.size == 0) i18n"No posts have been published yet."
-              else i18n"There are no posts on this page.") {}
+            else if (table.size == 0) i18n"No posts have been published yet."
+            else i18n"There are no posts on this page.") {}
           }
           if (offset > 0) {
             routerLink(search.copy(offset = 0).url) {

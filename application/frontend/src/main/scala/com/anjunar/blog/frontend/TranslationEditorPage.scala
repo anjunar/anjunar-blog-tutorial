@@ -29,8 +29,12 @@ import ui.router.RouterLink.routerLink
 import scala.concurrent.ExecutionContext
 import scala.scalajs.js
 
-final class TranslationEditorPage(post: BlogPost, initial: TranslationData,
-    service: TranslationService, media: MediaService)(using ExecutionContext) extends AbstractComponent {
+final class TranslationEditorPage(
+  post: BlogPost,
+  initial: TranslationData,
+  service: TranslationService,
+  media: MediaService
+)(using ExecutionContext) extends AbstractComponent {
   val tagName = "section"
   private val actions = new TranslationActions(initial, service.send)
   private val translation = actions.translation
@@ -46,7 +50,9 @@ final class TranslationEditorPage(post: BlogPost, initial: TranslationData,
     render(this, cursor) {
       classes = "translation-editor post-editor"
       heading(1) { text(i18n"German translation") {} }
-      paragraph { text(i18n"The English source stays unchanged. Save a draft, then publish the translation separately.") {} }
+      paragraph {
+        text(i18n"The English source stays unchanged. Save a draft, then publish the translation separately.") {}
+      }
       if (post.status.get != "PUBLISHED") {
         paragraph { text(i18n"The post itself is a draft. Neither language is public yet.") {} }
       }
@@ -70,7 +76,8 @@ final class TranslationEditorPage(post: BlogPost, initial: TranslationData,
           classes = "post-form"
           attr("novalidate", "")
           mountedForm.addDisposable(actions.errors.observe(values =>
-            mountedForm.setErrorResponses(values.map(value => ErrorResponse(value.message, value.path)))))
+            mountedForm.setErrorResponses(values.map(value => ErrorResponse(value.message, value.path)))
+          ))
           on("submit") { event =>
             event.preventDefault()
             if (!actions.busy.get && !actions.blocked.get && upload.get.pending == 0) {
@@ -90,7 +97,10 @@ final class TranslationEditorPage(post: BlogPost, initial: TranslationData,
               lang = translation.locale.get
               attr("aria-describedby", "translation-title-errors")
             }
-            paragraph { id = "translation-title-errors"; classes = "field-error"; text(control.errors.map((values: js.Array[String]) => values.mkString(", "))) {} }
+            paragraph {
+              id = "translation-title-errors"; classes = "field-error";
+              text(control.errors.map((values: js.Array[String]) => values.mkString(", "))) {}
+            }
           }
           div {
             classes = "post-field"
@@ -102,7 +112,10 @@ final class TranslationEditorPage(post: BlogPost, initial: TranslationData,
               attr("rows", "3")
               attr("aria-describedby", "translation-summary-errors")
             }
-            paragraph { id = "translation-summary-errors"; classes = "field-error"; text(control.errors.map((values: js.Array[String]) => values.mkString(", "))) {} }
+            paragraph {
+              id = "translation-summary-errors"; classes = "field-error";
+              text(control.errors.map((values: js.Array[String]) => values.mkString(", "))) {}
+            }
           }
           div {
             classes = "post-field"
@@ -129,28 +142,44 @@ final class TranslationEditorPage(post: BlogPost, initial: TranslationData,
               imagePlugin()
               codePlugin()
             }
-            paragraph { id = "translation-content-errors"; classes = "field-error"; text(control.errors.map((values: js.Array[String]) => values.mkString(", "))) {} }
+            paragraph {
+              id = "translation-content-errors"; classes = "field-error";
+              text(control.errors.map((values: js.Array[String]) => values.mkString(", "))) {}
+            }
           }
           div {
             classes = "editorial-controls"
             button(i18n"Save translation") {
               buttonType("submit")
-              disabled = actions.busy.flatMap(busy => actions.blocked.flatMap(blocked =>
-                upload.map(value => busy || blocked || value.pending > 0)))
+              disabled = actions.busy.flatMap(busy =>
+                actions.blocked.flatMap(blocked =>
+                  upload.map(value => busy || blocked || value.pending > 0)
+                )
+              )
             }
             when(actions.links.map(_.exists(_.rel == "publish"))) {
               button(i18n"Publish translation") {
                 buttonType("button")
-                disabled = actions.busy.flatMap(busy => actions.dirty.flatMap(dirty =>
-                  actions.blocked.flatMap(blocked => upload.map(value => busy || dirty || blocked || value.pending > 0))))
+                disabled = actions.busy.flatMap(busy =>
+                  actions.dirty.flatMap(dirty =>
+                    actions.blocked.flatMap(blocked =>
+                      upload.map(value => busy || dirty || blocked || value.pending > 0)
+                    )
+                  )
+                )
                 onClick(_ => actions.run("publish"))
               }
             }
             when(actions.links.map(_.exists(_.rel == "retract"))) {
               button(i18n"Retract translation") {
                 buttonType("button")
-                disabled = actions.busy.flatMap(busy => actions.dirty.flatMap(dirty =>
-                  actions.blocked.flatMap(blocked => upload.map(value => busy || dirty || blocked || value.pending > 0))))
+                disabled = actions.busy.flatMap(busy =>
+                  actions.dirty.flatMap(dirty =>
+                    actions.blocked.flatMap(blocked =>
+                      upload.map(value => busy || dirty || blocked || value.pending > 0)
+                    )
+                  )
+                )
                 onClick(_ => actions.run("retract"))
               }
             }
@@ -159,15 +188,17 @@ final class TranslationEditorPage(post: BlogPost, initial: TranslationData,
           when(actions.notice.map(_ != SaveNotice.Idle)) {
             paragraph {
               role = "status"
-              text(actions.notice.map(value => value match {
-                case SaveNotice.Saved => i18n"Translation saved."
-                case SaveNotice.NewerEdits => i18n"Saved. Your newer edits still need saving."
-                case SaveNotice.Invalid | SaveNotice.BindingFailed => i18n"Check the highlighted fields."
-                case SaveNotice.Conflict => i18n"The translation changed. Reload before saving again."
-                case SaveNotice.SignedOut => i18n"Your session ended. Sign in again."
-                case SaveNotice.Forbidden => i18n"This action is no longer allowed. Reload to check your access."
-                case _ => i18n"The action could not be confirmed. Reload to check the post."
-              })) {}
+              text(actions.notice.map(value =>
+                value match {
+                  case SaveNotice.Saved                              => i18n"Translation saved."
+                  case SaveNotice.NewerEdits                         => i18n"Saved. Your newer edits still need saving."
+                  case SaveNotice.Invalid | SaveNotice.BindingFailed => i18n"Check the highlighted fields."
+                  case SaveNotice.Conflict  => i18n"The translation changed. Reload before saving again."
+                  case SaveNotice.SignedOut => i18n"Your session ended. Sign in again."
+                  case SaveNotice.Forbidden => i18n"This action is no longer allowed. Reload to check your access."
+                  case _                    => i18n"The action could not be confirmed. Reload to check the post."
+                }
+              )) {}
             }
           }
           when(actions.generalError.map(_.nonEmpty)) {
@@ -177,7 +208,9 @@ final class TranslationEditorPage(post: BlogPost, initial: TranslationData,
             button(i18n"Discard my edits and reload") {
               buttonType("button")
               onClick { _ =>
-                if (cursor.isBrowser) dom.window.location.assign(Router.requireCurrent.hrefFor(s"/editorial/posts/${post.id.get}/translations/de"))
+                if (cursor.isBrowser) dom.window.location.assign(
+                  Router.requireCurrent.hrefFor(s"/editorial/posts/${post.id.get}/translations/de")
+                )
               }
             }
           }

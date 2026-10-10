@@ -9,22 +9,30 @@ import java.net.http.{HttpClient, HttpRequest, HttpResponse}
 import java.nio.charset.StandardCharsets.UTF_8
 import java.nio.file.Path
 import java.time.Duration
-import java.util.Map as JavaMap
+import java.util
 import java.util.concurrent.{ArrayBlockingQueue, FutureTask, ThreadPoolExecutor, TimeUnit, TimeoutException}
 import java.util.concurrent.atomic.{AtomicBoolean, AtomicReference}
 import scala.collection.mutable
 import scala.jdk.CollectionConverters.*
 
-
 /** One bounded worker owns all guest execution. Every request gets a new JS context. */
-final class SsrRenderer(bundle: Path, apiOrigin: URI, timeout: Duration = Duration.ofSeconds(15), publicOrigin: Option[String] = None)
-    extends AutoCloseable {
+final class SsrRenderer(
+  bundle: Path,
+  apiOrigin: URI,
+  timeout: Duration = Duration.ofSeconds(15),
+  publicOrigin: Option[String] = None
+) extends AutoCloseable {
   require(apiOrigin.getHost == "127.0.0.1" && apiOrigin.getScheme == "http")
   require(!timeout.isNegative && !timeout.isZero)
-  private val worker = new ThreadPoolExecutor(1, 1, 0L, TimeUnit.MILLISECONDS,
+  private val worker = new ThreadPoolExecutor(
+    1,
+    1,
+    0L,
+    TimeUnit.MILLISECONDS,
     new ArrayBlockingQueue[Runnable](8),
     (task: Runnable) => new Thread(task, "blog-ssr"),
-    new ThreadPoolExecutor.AbortPolicy())
+    new ThreadPoolExecutor.AbortPolicy()
+  )
   private val client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(2))
     .followRedirects(HttpClient.Redirect.NEVER).build()
   private val active = new AtomicReference[Request]()
@@ -36,7 +44,8 @@ final class SsrRenderer(bundle: Path, apiOrigin: URI, timeout: Duration = Durati
   private lazy val host = {
     val stream = getClass.getResourceAsStream("/ssr/host.js")
     require(stream != null, "SSR host resource is missing")
-    try new String(stream.readAllBytes(), UTF_8) finally stream.close()
+    try new String(stream.readAllBytes(), UTF_8)
+    finally stream.close()
   }
 
   private final class Request {
@@ -83,20 +92,29 @@ final class SsrRenderer(bundle: Path, apiOrigin: URI, timeout: Duration = Durati
       var nextTimer = 0
       val timers = mutable.Map.empty[Int, (Long, Value)]
       val bindings = context.getBindings("js")
-      bindings.putMember("fetchPublic", new ProxyExecutable {
-        override def execute(args: Value*): AnyRef = fetch(args(0).asString(), args(1).asString())
-      })
-      bindings.putMember("scheduleTimer", new ProxyExecutable {
-        override def execute(args: Value*): AnyRef = {
-          nextTimer += 1
-          val delay = math.max(0L, math.min(args(1).asDouble().toLong, timeout.toMillis))
-          timers(nextTimer) = (System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(delay), args(0))
-          lang.Integer.valueOf(nextTimer)
+      bindings.putMember(
+        "fetchPublic",
+        new ProxyExecutable {
+          override def execute(args: Value*): AnyRef = fetch(args(0).asString(), args(1).asString())
         }
-      })
-      bindings.putMember("cancelTimer", new ProxyExecutable {
-        override def execute(args: Value*): AnyRef = { timers.remove(args(0).asInt()); null }
-      })
+      )
+      bindings.putMember(
+        "scheduleTimer",
+        new ProxyExecutable {
+          override def execute(args: Value*): AnyRef = {
+            nextTimer += 1
+            val delay = math.max(0L, math.min(args(1).asDouble().toLong, timeout.toMillis))
+            timers(nextTimer) = (System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(delay), args(0))
+            lang.Integer.valueOf(nextTimer)
+          }
+        }
+      )
+      bindings.putMember(
+        "cancelTimer",
+        new ProxyExecutable {
+          override def execute(args: Value*): AnyRef = { timers.remove(args(0).asInt()); null }
+        }
+      )
       context.eval("js", host)
       val exports = context.eval(module)
       var result: RenderedPage = null
@@ -113,7 +131,10 @@ final class SsrRenderer(bundle: Path, apiOrigin: URI, timeout: Duration = Durati
       val rejected = new ProxyExecutable {
         override def execute(args: Value*): AnyRef = { failure = args.head.toString; null }
       }
-      exports.getMember("render").execute(url, publicOrigin.getOrElse(apiOrigin.toString)).invokeMember("then", resolved, rejected)
+      exports.getMember("render").execute(
+        url,
+        publicOrigin.getOrElse(apiOrigin.toString)
+      ).invokeMember("then", resolved, rejected)
       while (result == null && failure == null && !request.cancelled.get()) {
         timers.toSeq.filter(_._2._1 <= System.nanoTime()).foreach { case (id, (_, callback)) =>
           if (timers.remove(id).isDefined) callback.execute()
@@ -131,10 +152,12 @@ final class SsrRenderer(bundle: Path, apiOrigin: URI, timeout: Duration = Durati
 
   private def fetch(path: String, method: String): ProxyObject = {
     val relative = URI.create(path)
-    require(method == "GET" && !relative.isAbsolute && relative.getRawAuthority == null &&
-      relative.getRawFragment == null &&
-      relative.getRawPath.matches("/service/blog/posts(?:/[a-z0-9]+(?:-[a-z0-9]+)*)?"),
-      "SSR can only read the public posts API")
+    require(
+      method == "GET" && !relative.isAbsolute && relative.getRawAuthority == null &&
+        relative.getRawFragment == null &&
+        relative.getRawPath.matches("/service/blog/posts(?:/[a-z0-9]+(?:-[a-z0-9]+)*)?"),
+      "SSR can only read the public posts API"
+    )
     val request = HttpRequest.newBuilder(apiOrigin.resolve(relative)).GET()
       .header("Accept", "application/json, application/problem+json")
       .timeout(Duration.ofSeconds(3)).build()
@@ -145,16 +168,20 @@ final class SsrRenderer(bundle: Path, apiOrigin: URI, timeout: Duration = Durati
       require(bytes.length <= 2 * 1024 * 1024, "SSR API response is too large")
       new String(bytes, UTF_8)
     } finally stream.close()
-    ProxyObject.fromMap(JavaMap.of[String, Object](
-      "status", lang.Integer.valueOf(response.statusCode()),
-      "body", body,
-      "contentType", response.headers().firstValue("Content-Type").orElse("")))
+    ProxyObject.fromMap(util.Map.of[String, Object](
+      "status",
+      lang.Integer.valueOf(response.statusCode()),
+      "body",
+      body,
+      "contentType",
+      response.headers().firstValue("Content-Type").orElse("")
+    ))
   }
 
   override def close(): Unit = if (closed.compareAndSet(false, true)) {
     worker.shutdownNow().asScala.foreach {
       case task: FutureTask[?] => task.cancel(false)
-      case _ => ()
+      case _                   => ()
     }
     Option(active.get()).foreach(_.cancel())
     worker.awaitTermination(5, TimeUnit.SECONDS)

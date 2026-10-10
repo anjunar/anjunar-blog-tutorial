@@ -11,7 +11,7 @@ import jakarta.json.bind.annotation.JsonbProperty
 import jakarta.persistence.{Access, AccessType, Column, Entity, GeneratedValue, GenerationType, Id, NamedAttributeNode, NamedEntityGraph, Table, UniqueConstraint, Version}
 import jakarta.validation.constraints.{NotBlank, Pattern, Size}
 
-import java.util.UUID
+import java.util
 import scala.compiletime.uninitialized
 
 @RequestScoped

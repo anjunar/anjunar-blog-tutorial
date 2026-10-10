@@ -26,9 +26,9 @@ final class AccountActions(initial: SessionState, service: AccountService)(using
       pending.onComplete { result =>
         if (!disposed) {
           result match {
-            case Success(state) => session.set(state)
+            case Success(state)                => session.set(state)
             case Failure(failure: HttpFailure) => error.set(failure.status)
-            case Failure(_) => error.set(503)
+            case Failure(_)                    => error.set(503)
           }
           busy.set(false)
         }

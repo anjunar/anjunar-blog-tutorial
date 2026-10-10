@@ -25,8 +25,12 @@ import ui.viewport.Viewport.viewport
 
 import scala.concurrent.ExecutionContext
 
-final class BlogPage(service: BlogService, actions: BlogActions, requestUrl: Option[String] = None,
-    publicOrigin: String = "")(using ExecutionContext)
+final class BlogPage(
+  service: BlogService,
+  actions: BlogActions,
+  requestUrl: Option[String] = None,
+  publicOrigin: String = ""
+)(using ExecutionContext)
     extends AbstractComponent {
   val tagName = "div"
   private val pages = new BlogRoutes(service, actions)
@@ -47,7 +51,8 @@ final class BlogPage(service: BlogService, actions: BlogActions, requestUrl: Opt
       addDisposable(() => stopListening())
       // The static document root is outside this component's DSL tree.
       addDisposable(translations.locale.observe(locale =>
-        dom.document.documentElement.asInstanceOf[dom.HTMLElement].lang = locale.code))
+        dom.document.documentElement.asInstanceOf[dom.HTMLElement].lang = locale.code
+      ))
     }
     router = new Router(pages.routes, initialUrl, pages.config)
     Router.provide(router)(using this)
@@ -57,7 +62,7 @@ final class BlogPage(service: BlogService, actions: BlogActions, requestUrl: Opt
         val state = router.state.get
         // Account links may already have removed their secret fragment from the browser URL.
         val suffix = if (cursor.isBrowser) dom.window.location.search + dom.window.location.hash
-          else state.search + state.hash
+        else state.search + state.hash
         router.navigate(router.localizedPath(state.path, next) + suffix)
       }
 
@@ -103,7 +108,8 @@ final class BlogPage(service: BlogService, actions: BlogActions, requestUrl: Opt
               ariaPressed = translations.locale.map(_ == BlogI18n.English)
               attr("aria-describedby", "language-switch-help")
               disabled = languageNavigation.blocked.flatMap(blocked =>
-                translations.locale.map(locale => blocked || locale == BlogI18n.English))
+                translations.locale.map(locale => blocked || locale == BlogI18n.English)
+              )
               onClick(_ => changeLanguage(BlogI18n.English))
             }
             button("Deutsch") {
@@ -113,7 +119,8 @@ final class BlogPage(service: BlogService, actions: BlogActions, requestUrl: Opt
               ariaPressed = translations.locale.map(_ == BlogI18n.German)
               attr("aria-describedby", "language-switch-help")
               disabled = languageNavigation.blocked.flatMap(blocked =>
-                translations.locale.map(locale => blocked || locale == BlogI18n.German))
+                translations.locale.map(locale => blocked || locale == BlogI18n.German)
+              )
               onClick(_ => changeLanguage(BlogI18n.German))
             }
           }

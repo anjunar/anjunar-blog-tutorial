@@ -8,6 +8,7 @@ import scala.annotation.meta.field
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters.*
 
-final class BlogPostData(var data: BlogPost = null,
-    @(JsonProperty @field)("$links") var links: Seq[ApiLink] = Seq.empty)
-
+final class BlogPostData(
+  var data: BlogPost = null,
+  @(JsonProperty @field)("$links") var links: Seq[ApiLink] = Seq.empty
+)

@@ -14,11 +14,21 @@ object Problem {
   val conflict = "/problems/conflict"
 
   def invalidField(name: String, message: String): Nothing =
-    throw new ApiProblem(400, "The request contains invalid values.", validation,
-      Seq(new ErrorRequest(util.List.of[Any](name), message)))
+    throw new ApiProblem(
+      400,
+      "The request contains invalid values.",
+      validation,
+      Seq(new ErrorRequest(util.List.of[Any](name), message))
+    )
 
-  def response(status: Int, detail: String, instance: String, kind: String = "about:blank",
-      errors: Seq[ErrorRequest] = Seq.empty, errorId: Option[String] = None): Response = {
+  def response(
+    status: Int,
+    detail: String,
+    instance: String,
+    kind: String = "about:blank",
+    errors: Seq[ErrorRequest] = Seq.empty,
+    errorId: Option[String] = None
+  ): Response = {
     val title = Option(Response.Status.fromStatusCode(status)).map(_.getReasonPhrase).getOrElse(s"HTTP $status")
     val body = new JsonObject().put("type", kind).put("title", title)
       .put("status", Int.box(status)).put("detail", detail).put("instance", instance)
@@ -26,7 +36,7 @@ object Problem {
       val fields = errors.map { error =>
         val path = error.path.asScala.map {
           case value: Number => new JsonNumber(value.toString): JsonNode
-          case value => new JsonString(String.valueOf(value)): JsonNode
+          case value         => new JsonString(String.valueOf(value)): JsonNode
         }
         new JsonObject().put("path", new JsonArray(new util.ArrayList[JsonNode](path.asJava)))
           .put("message", error.message): JsonNode

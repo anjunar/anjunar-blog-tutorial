@@ -14,14 +14,23 @@ import java.nio.charset.StandardCharsets.UTF_8
 import scala.jdk.CollectionConverters.*
 import scala.util.control.NonFatal
 
-
 @Provider
 @Consumes(Array(MediaType.APPLICATION_JSON))
 class EmailRequestReader extends MessageBodyReader[EmailRequest] {
-  override def isReadable(clazz: Class[?], genericType: Type,
-      annotations: Array[Annotation], mediaType: MediaType): Boolean = clazz == classOf[EmailRequest]
+  override def isReadable(
+    clazz: Class[?],
+    genericType: Type,
+    annotations: Array[Annotation],
+    mediaType: MediaType
+  ): Boolean = clazz == classOf[EmailRequest]
 
-  override def readFrom(clazz: Class[EmailRequest], genericType: Type, annotations: Array[Annotation],
-      mediaType: MediaType, headers: MultivaluedMap[String, String], stream: InputStream): EmailRequest =
+  override def readFrom(
+    clazz: Class[EmailRequest],
+    genericType: Type,
+    annotations: Array[Annotation],
+    mediaType: MediaType,
+    headers: MultivaluedMap[String, String],
+    stream: InputStream
+  ): EmailRequest =
     EmailRequest(AuthJson.email(AuthJson.read(stream, Map("email" -> 254))("email")))
 }

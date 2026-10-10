@@ -25,8 +25,9 @@ import ui.router.RouterLink.routerLink
 import scala.concurrent.ExecutionContext
 import scala.scalajs.js
 
-final class AuthorEditor(initial: AuthorData, service: CatalogService, saved: AuthorData => Unit)
-    (using ExecutionContext) extends AbstractComponent {
+final class AuthorEditor(initial: AuthorData, service: CatalogService, saved: AuthorData => Unit)(using
+  ExecutionContext
+) extends AbstractComponent {
   val tagName = "section"
   private val account = initial.data
   private val update = initial.links.find(_.rel == "update").getOrElse(throw new HttpFailure(403))
@@ -43,7 +44,8 @@ final class AuthorEditor(initial: AuthorData, service: CatalogService, saved: Au
         ariaLabel = i18n"Author details"
         editable = actions.busy.map(!_)
         mounted.addDisposable(actions.fields.observe(values =>
-          mounted.setErrorResponses(values.map(value => ErrorResponse(value.message, value.path)))))
+          mounted.setErrorResponses(values.map(value => ErrorResponse(value.message, value.path)))
+        ))
         on("submit") { event =>
           event.preventDefault()
           mounted.clearErrors()
@@ -54,18 +56,25 @@ final class AuthorEditor(initial: AuthorData, service: CatalogService, saved: Au
           id = s"author-name-${account.id.get}"
           AttributeDsl.setAttribute("aria-describedby", s"author-errors-${account.id.get}")
         }
-        paragraph { id = s"author-errors-${account.id.get}"; classes = "field-error"; text(control.errors.map((values: js.Array[String]) => values.mkString(", "))) {} }
+        paragraph {
+          id = s"author-errors-${account.id.get}"; classes = "field-error";
+          text(control.errors.map((values: js.Array[String]) => values.mkString(", "))) {}
+        }
         when(actions.error.map(_.nonEmpty)) {
           paragraph {
             role = "alert"
-            text(actions.error.map(value => value match {
-              case Some(400) => i18n"Review the public name."
-              case Some(409) => i18n"This author changed. Reload before saving again."
-              case _ => i18n"The save could not be confirmed. Reload to check the author."
-            })) {}
+            text(actions.error.map(value =>
+              value match {
+                case Some(400) => i18n"Review the public name."
+                case Some(409) => i18n"This author changed. Reload before saving again."
+                case _         => i18n"The save could not be confirmed. Reload to check the author."
+              }
+            )) {}
           }
         }
-        button(i18n"Save author") { buttonType("submit"); disabled = actions.busy.flatMap(busy => actions.blocked.map(blocked => busy || blocked)) }
+        button(i18n"Save author") {
+          buttonType("submit"); disabled = actions.busy.flatMap(busy => actions.blocked.map(blocked => busy || blocked))
+        }
         when(actions.blocked) {
           button(i18n"Reload authors and tags") {
             buttonType("button")
@@ -76,4 +85,3 @@ final class AuthorEditor(initial: AuthorData, service: CatalogService, saved: Au
     }
   }
 }
-

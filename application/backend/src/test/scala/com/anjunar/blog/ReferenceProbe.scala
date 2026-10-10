@@ -8,10 +8,9 @@ import jakarta.json.bind.annotation.JsonbProperty
 import jakarta.validation.Validation
 import org.scalatest.funsuite.AnyFunSuite
 
-import java.util.UUID
+import java.util
 import scala.util.Using
 
 class ReferenceProbe {
   @JsonbProperty var author: ReferenceAuthor = null
 }
-

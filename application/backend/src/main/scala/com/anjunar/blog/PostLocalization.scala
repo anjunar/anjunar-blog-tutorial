@@ -7,7 +7,6 @@ import jakarta.ws.rs.BadRequestException
 
 import scala.compiletime.uninitialized
 
-
 @RequestScoped
 class PostLocalization {
   @Inject var manager: EntityManager = uninitialized
@@ -20,7 +19,8 @@ class PostLocalization {
     query.select(translation).where(
       builder.equal(translation.get(BlogPostTranslation.schema.post), post),
       builder.equal(translation.get(BlogPostTranslation.schema.locale), "de"),
-      builder.equal(translation.get(BlogPostTranslation.schema.published), true))
+      builder.equal(translation.get(BlogPostTranslation.schema.published), true)
+    )
     val german = Option(manager.createQuery(query).getSingleResultOrNull)
     BlogPost.schema.translation // Register the nested response field after both schemas exist.
     post.translation = if (locale == "de") german.orNull else null

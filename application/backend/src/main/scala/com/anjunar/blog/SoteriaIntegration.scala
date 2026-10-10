@@ -12,7 +12,7 @@ import org.wildfly.security.auth.server.{SecurityDomain, SecurityRealm}
 import org.wildfly.security.permission.PermissionVerifier
 
 import java.lang
-import java.util.Set
+import java.util
 import javax.naming.Context
 
 object SoteriaIntegration {
@@ -29,7 +29,7 @@ object SoteriaIntegration {
       .build()
     deployment.setClassLoader(getClass.getClassLoader).setHostName("localhost")
       .addSecurityRole("ADMIN").addSecurityRole("READER")
-      .addServletContainerInitializer(new ServletContainerInitializerInfo(classOf[SoteriaInitializer], Set.of()))
+      .addServletContainerInitializer(new ServletContainerInitializerInfo(classOf[SoteriaInitializer], util.Set.of()))
     AuthenticationManager.builder().setSecurityDomain(domain)
       .setEnableJaspi(true).setIntegratedJaspi(false).build().configure(deployment)
     domain

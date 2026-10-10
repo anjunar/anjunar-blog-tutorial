@@ -9,7 +9,7 @@ import java.lang
 import java.net.URLDecoder
 import java.nio.charset.StandardCharsets.UTF_8
 import java.time.Instant
-import java.util.UUID
+import java.util
 import scala.compiletime.uninitialized
 import scala.jdk.CollectionConverters.*
 
@@ -24,7 +24,7 @@ class MediaLifecycle {
     cleanup(Instant.now().minusSeconds(86400), Some(owner), 20)
     val media = new Media()
     val decoded = try URLDecoder.decode(Option(encodedName).getOrElse(""), UTF_8)
-      catch { case _: IllegalArgumentException => "" }
+    catch { case _: IllegalArgumentException => "" }
     val name = decoded.replace('\\', '/').split('/').lastOption.getOrElse("")
       .replaceAll("[\\p{Cntrl}]", "").trim.take(80)
     media.name = if (name.nonEmpty) name else "Uploaded image"
@@ -46,12 +46,14 @@ class MediaLifecycle {
     // Hibernate joins require the real JPA collection attribute exposed by the schema.
     val reference = builder.or(Seq(
       builder.equal(post.get(BlogPost.schema.coverImage), media),
-      builder.equal(post.join(BlogPost.schema.inlineMedia.collectionAttribute, JoinType.LEFT), media))*)
+      builder.equal(post.join(BlogPost.schema.inlineMedia.collectionAttribute, JoinType.LEFT), media)
+    )*)
     val conditions = Seq(reference) ++ Option.when(publishedOnly)(
-      builder.equal(post.get(BlogPost.schema.status), BlogPostStatus.PUBLISHED))
+      builder.equal(post.get(BlogPost.schema.status), BlogPostStatus.PUBLISHED)
+    )
     query.select(builder.count(post)).where(conditions*)
     manager.createQuery(query).setFlushMode(FlushModeType.COMMIT).getSingleResult.longValue() > 0 ||
-      translationReferenced(media, publishedOnly)
+    translationReferenced(media, publishedOnly)
   }
 
   private def translationReferenced(media: Media, publishedOnly: Boolean): Boolean = {
@@ -59,9 +61,15 @@ class MediaLifecycle {
     val query = builder.createQuery(classOf[lang.Long])
     val translation = query.from(classOf[BlogPostTranslation])
     val reference = builder.equal(translation.join(BlogPostTranslation.schema.inlineMedia.collectionAttribute), media)
-    val conditions = Seq(reference) ++ (if (!publishedOnly) Seq.empty else Seq(
-      builder.equal(translation.get(BlogPostTranslation.schema.published), true),
-      builder.equal(translation.get(BlogPostTranslation.schema.post).get(BlogPost.schema.status), BlogPostStatus.PUBLISHED)))
+    val conditions = Seq(reference) ++
+      (if (!publishedOnly) Seq.empty
+       else Seq(
+         builder.equal(translation.get(BlogPostTranslation.schema.published), true),
+         builder.equal(
+           translation.get(BlogPostTranslation.schema.post).get(BlogPost.schema.status),
+           BlogPostStatus.PUBLISHED
+         )
+       ))
     query.select(builder.count(translation)).where(conditions*)
     manager.createQuery(query).setFlushMode(FlushModeType.COMMIT).getSingleResult.longValue() > 0
   }
@@ -70,23 +78,28 @@ class MediaLifecycle {
     caller.administrator && (identity.account.exists(_.id == media.ownerId) || referenced(media))
 
   // The media-row lock is shared by attachment and cleanup. Recheck references after locking.
-  def cleanup(cutoff: Instant, owner: Option[UUID], limit: Int): Int = {
+  def cleanup(cutoff: Instant, owner: Option[util.UUID], limit: Int): Int = {
     require(limit >= 1 && limit <= 100, "Cleanup batch must be between 1 and 100")
     val builder = manager.getCriteriaBuilder
-    val query = builder.createQuery(classOf[UUID])
+    val query = builder.createQuery(classOf[util.UUID])
     val media = query.from(classOf[Media])
-    val linked = query.subquery(classOf[UUID])
+    val linked = query.subquery(classOf[util.UUID])
     val post = linked.from(classOf[BlogPost])
     val reference = builder.or(Seq(
       builder.equal(post.get(BlogPost.schema.coverImage), media),
-      builder.equal(post.join(BlogPost.schema.inlineMedia.collectionAttribute, JoinType.LEFT), media))*)
+      builder.equal(post.join(BlogPost.schema.inlineMedia.collectionAttribute, JoinType.LEFT), media)
+    )*)
     linked.select(post.get(BlogPost.schema.id)).where(Seq(reference)*)
-    val translated = query.subquery(classOf[UUID])
+    val translated = query.subquery(classOf[util.UUID])
     val translation = translated.from(classOf[BlogPostTranslation])
     translated.select(translation.get(BlogPostTranslation.schema.id)).where(Seq(
-      builder.equal(translation.join(BlogPostTranslation.schema.inlineMedia.collectionAttribute), media))*)
-    val conditions = Seq(builder.lessThan(media.get(Media.schema.createdAt), cutoff),
-      builder.not(builder.exists(linked)), builder.not(builder.exists(translated))) ++
+      builder.equal(translation.join(BlogPostTranslation.schema.inlineMedia.collectionAttribute), media)
+    )*)
+    val conditions = Seq(
+      builder.lessThan(media.get(Media.schema.createdAt), cutoff),
+      builder.not(builder.exists(linked)),
+      builder.not(builder.exists(translated))
+    ) ++
       owner.toSeq.map(value => builder.equal(media.get(Media.schema.ownerId), value))
     query.select(media.get(Media.schema.id)).where(conditions*)
       .orderBy(builder.asc(media.get(Media.schema.id)))
@@ -94,8 +107,10 @@ class MediaLifecycle {
     var removed = 0
     ids.foreach { id =>
       val current = manager.find(classOf[Media], id, LockModeType.PESSIMISTIC_WRITE)
-      if (current != null && current.createdAt.isBefore(cutoff) &&
-          owner.forall(_ == current.ownerId) && !referenced(current)) {
+      if (
+        current != null && current.createdAt.isBefore(cutoff) &&
+        owner.forall(_ == current.ownerId) && !referenced(current)
+      ) {
         manager.remove(current)
         removed += 1
       }

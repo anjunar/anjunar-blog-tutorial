@@ -43,7 +43,8 @@ class Persistence {
       .connectionFactoryConfiguration(connection)
       .transactionIntegration(new NarayanaTransactionIntegration(
         NarayanaTransactionManager.transactionManager(),
-        new TransactionSynchronizationRegistryImple()))
+        new TransactionSynchronizationRegistryImple()
+      ))
     pool = AgroalDataSource.from(new AgroalDataSourceConfigurationSupplier()
       .connectionPoolConfiguration(pooling))
 
@@ -52,8 +53,10 @@ class Persistence {
       registry = new StandardServiceRegistryBuilder()
         .applySetting("jakarta.persistence.jtaDataSource", pool)
         .applySetting("hibernate.transaction.coordinator_class", "jta")
-        .applySetting("hibernate.transaction.jta.platform",
-          new NarayanaJtaPlatform())
+        .applySetting(
+          "hibernate.transaction.jta.platform",
+          new NarayanaJtaPlatform()
+        )
         .applySetting("hibernate.hbm2ddl.auto", "validate")
         .applySetting("jakarta.persistence.validation.mode", "CALLBACK")
         .build()

@@ -10,7 +10,7 @@ import java.net.{CookieManager, CookiePolicy, InetAddress, ServerSocket, URI}
 import java.net.http.{HttpClient, HttpRequest, HttpResponse}
 import java.sql.DriverManager
 import java.time.Duration
-import java.util.UUID
+import java.util
 import scala.collection.mutable
 import scala.jdk.CollectionConverters.*
 import scala.util.Using
@@ -18,7 +18,7 @@ import scala.util.Using
 class AuthenticationSpec extends AnyFunSuite with BeforeAndAfterAll {
   private var server: UndertowCdiEmbeddedServer = null
   private var port = 0
-  private val owned = mutable.Buffer.empty[UUID]
+  private val owned = mutable.Buffer.empty[util.UUID]
   private val clients = mutable.Buffer.empty[HttpClient]
   private val password = "a long tutorial passphrase"
   private lazy val hash = PasswordHash.create(password)
@@ -30,7 +30,8 @@ class AuthenticationSpec extends AnyFunSuite with BeforeAndAfterAll {
 
   private def freePort(): Int = {
     val socket = new ServerSocket(0, 1, InetAddress.getByName("127.0.0.1"))
-    try socket.getLocalPort finally socket.close()
+    try socket.getLocalPort
+    finally socket.close()
   }
 
   override protected def beforeAll(): Unit = {
@@ -52,13 +53,14 @@ class AuthenticationSpec extends AnyFunSuite with BeforeAndAfterAll {
   }
 
   private def account(locked: Boolean = false): String = {
-    val id = UUID.randomUUID()
+    val id = util.UUID.randomUUID()
     val email = s"auth-$id@example.com"
     owned += id
     Using.resource(connection()) { connection =>
       Using.resource(connection.prepareStatement(
         """insert into public.blog_account (id, version, email, role, password_hash, authentication_version, locked)
-          |values (?, 0, ?, 'ADMIN', ?, 0, ?)""".stripMargin)) { query =>
+          |values (?, 0, ?, 'ADMIN', ?, 0, ?)""".stripMargin
+      )) { query =>
         query.setObject(1, id)
         query.setString(2, email)
         query.setString(3, hash)
@@ -73,9 +75,15 @@ class AuthenticationSpec extends AnyFunSuite with BeforeAndAfterAll {
     val cookies = new CookieManager(null, CookiePolicy.ACCEPT_ALL)
     val client = HttpClient.newBuilder().cookieHandler(cookies).connectTimeout(Duration.ofSeconds(5)).build()
     clients += client
-    def cookie: String = cookies.getCookieStore.getCookies.asScala.find(_.getName == SecurityConfig.cookieName).get.getValue
-    def send(path: String, method: String = "GET", body: String = "", csrf: String = "",
-        extra: Map[String, String] = Map.empty): HttpResponse[String] = {
+    def cookie: String =
+      cookies.getCookieStore.getCookies.asScala.find(_.getName == SecurityConfig.cookieName).get.getValue
+    def send(
+      path: String,
+      method: String = "GET",
+      body: String = "",
+      csrf: String = "",
+      extra: Map[String, String] = Map.empty
+    ): HttpResponse[String] = {
       val builder = HttpRequest.newBuilder(URI.create(s"http://127.0.0.1:$port/service/$path"))
         .timeout(Duration.ofSeconds(20)).header("Accept", "application/json")
       if (csrf.nonEmpty) builder.header("X-CSRF-Token", csrf)
@@ -86,8 +94,12 @@ class AuthenticationSpec extends AnyFunSuite with BeforeAndAfterAll {
     }
     def session(): JsonObject = json(send("auth/session"))
     def login(email: String, secret: String = password): HttpResponse[String] =
-      send("auth/login", "POST", new JsonObject().put("email", email).put("password", secret).encode(),
-        session().getString("csrfToken"))
+      send(
+        "auth/login",
+        "POST",
+        new JsonObject().put("email", email).put("password", secret).encode(),
+        session().getString("csrfToken")
+      )
   }
 
   private def json(response: HttpResponse[String]): JsonObject = {
@@ -124,14 +136,20 @@ class AuthenticationSpec extends AnyFunSuite with BeforeAndAfterAll {
     assert(value.value.keySet().asScala.toSet == Set("id", "version", "email", "role", "@type"))
     val me = browser.send("auth/me")
     assert(json(me).getJsonObject("data").getString("email") == email)
-    assert(!me.body().contains(hash) && !me.body().contains("passwordHash") && !me.body().contains("authenticationVersion"))
+    assert(!me.body().contains(hash) && !me.body().contains("passwordHash") &&
+      !me.body().contains("authenticationVersion"))
     val anonymous = new Browser()
     assert(anonymous.send("auth/me", extra = Map("Cookie" -> s"BLOGSESSION=$oldCookie")).statusCode() == 401)
   }
 
   test("wrong, unknown and locked credentials have the same failure and remain anonymous") {
-    for ((email, secret) <- Seq((account(), "incorrect password"), (s"${UUID.randomUUID()}@example.com", password),
-      (account(locked = true), password))) {
+    for (
+      (email, secret) <- Seq(
+        (account(), "incorrect password"),
+        (s"${util.UUID.randomUUID()}@example.com", password),
+        (account(locked = true), password)
+      )
+    ) {
       val browser = new Browser()
       val response = browser.login(email, secret)
       assert(response.statusCode() == 401)
@@ -174,7 +192,8 @@ class AuthenticationSpec extends AnyFunSuite with BeforeAndAfterAll {
     json(browser.login(email))
     Using.resource(connection()) { connection =>
       Using.resource(connection.prepareStatement(
-        "update public.blog_account set authentication_version = authentication_version + 1 where email = ?")) { query =>
+        "update public.blog_account set authentication_version = authentication_version + 1 where email = ?"
+      )) { query =>
         query.setString(1, email)
         query.executeUpdate()
       }
@@ -188,9 +207,10 @@ class AuthenticationSpec extends AnyFunSuite with BeforeAndAfterAll {
     val browser = new Browser()
     json(browser.login(email))
     Using.resource(connection()) { connection =>
-      Using.resource(connection.prepareStatement("update public.blog_account set locked = true where email = ?")) { query =>
-        query.setString(1, email)
-        query.executeUpdate()
+      Using.resource(connection.prepareStatement("update public.blog_account set locked = true where email = ?")) {
+        query =>
+          query.setString(1, email)
+          query.executeUpdate()
       }
     }
     assert(browser.send("auth/me").statusCode() == 401)
@@ -199,8 +219,15 @@ class AuthenticationSpec extends AnyFunSuite with BeforeAndAfterAll {
   test("the credential command rejects extra fields, malformed JSON and oversized bodies") {
     val browser = new Browser()
     val token = browser.session().getString("csrfToken")
-    for (body <- Seq("{}", "null", "{broken", """{"email":"a@example.com","password":42}""",
-      """{"email":"a@example.com","password":"anything","role":"ADMIN"}""")) {
+    for (
+      body <- Seq(
+        "{}",
+        "null",
+        "{broken",
+        """{"email":"a@example.com","password":42}""",
+        """{"email":"a@example.com","password":"anything","role":"ADMIN"}"""
+      )
+    ) {
       assert(browser.send("auth/login", "POST", body, token).statusCode() == 400)
     }
     assert(browser.send("auth/login", "POST", "x" * 4097, token).statusCode() == 413)
@@ -208,7 +235,7 @@ class AuthenticationSpec extends AnyFunSuite with BeforeAndAfterAll {
 
   test("HTTP sign-in attempts are throttled even for unknown accounts") {
     val browser = new Browser()
-    val email = s"${UUID.randomUUID()}@example.com"
+    val email = s"${util.UUID.randomUUID()}@example.com"
     for (_ <- 1 to 5) assert(browser.login(email).statusCode() == 401)
     val blocked = browser.login(email)
     assert(blocked.statusCode() == 429)
@@ -221,7 +248,6 @@ class AuthenticationSpec extends AnyFunSuite with BeforeAndAfterAll {
     val other = new Browser()
     assert(other.send(s"auth/me;jsessionid=${browser.cookie}").statusCode() != 200)
   }
-
 
   test("Soteria establishes one identity and current roles in Servlet, REST and Jakarta Security") {
     val email = account()
@@ -242,9 +268,10 @@ class AuthenticationSpec extends AnyFunSuite with BeforeAndAfterAll {
     assert(signedIn("container") == "org.wildfly.elytron.web.undertow.server.servlet.ServletSecurityContextImpl")
     assert(signedIn("storeHandler") != signedIn("mechanismHandler"))
     Using.resource(connection()) { connection =>
-      Using.resource(connection.prepareStatement("update public.blog_account set role = 'READER' where email = ?")) { query =>
-        query.setString(1, email)
-        query.executeUpdate()
+      Using.resource(connection.prepareStatement("update public.blog_account set role = 'READER' where email = ?")) {
+        query =>
+          query.setString(1, email)
+          query.executeUpdate()
       }
     }
     val changed = probe()
@@ -261,8 +288,13 @@ class AuthenticationSpec extends AnyFunSuite with BeforeAndAfterAll {
       val token = browser.session().getString("csrfToken")
       val cookie = browser.cookie
       val body = new JsonObject().put("email", account()).put("password", password).encode()
-      assert(browser.send("auth/login", "POST", body, token,
-        Map("X-Test-Auth-Failure" -> failure)).statusCode() == 500)
+      assert(browser.send(
+        "auth/login",
+        "POST",
+        body,
+        token,
+        Map("X-Test-Auth-Failure" -> failure)
+      ).statusCode() == 500)
       assert(browser.cookie == cookie)
       assert(browser.send("auth/me").statusCode() == 401)
       assert(browser.session().getString("csrfToken") == token)
@@ -274,8 +306,12 @@ class AuthenticationSpec extends AnyFunSuite with BeforeAndAfterAll {
     val token = json(browser.login(account())).getString("csrfToken")
     val cookie = browser.cookie
     for (failure <- Seq("writer", "commit")) {
-      assert(browser.send("auth/logout", "POST", csrf = token,
-        extra = Map("X-Test-Auth-Failure" -> failure)).statusCode() == 500)
+      assert(browser.send(
+        "auth/logout",
+        "POST",
+        csrf = token,
+        extra = Map("X-Test-Auth-Failure" -> failure)
+      ).statusCode() == 500)
       assert(browser.cookie == cookie)
       assert(browser.send("auth/me").statusCode() == 200)
       assert(browser.session().getString("csrfToken") == token)
@@ -291,8 +327,11 @@ class AuthenticationSpec extends AnyFunSuite with BeforeAndAfterAll {
     val secureServer = ApplicationMain.start(securePort, security = SecurityConfig())
     try {
       Using.resource(HttpClient.newHttpClient()) { client =>
-        val response = client.send(HttpRequest.newBuilder(URI.create(s"http://127.0.0.1:$securePort/service/auth/session"))
-          .GET().build(), HttpResponse.BodyHandlers.ofString())
+        val response = client.send(
+          HttpRequest.newBuilder(URI.create(s"http://127.0.0.1:$securePort/service/auth/session"))
+            .GET().build(),
+          HttpResponse.BodyHandlers.ofString()
+        )
         assert(response.statusCode() == 200)
         assert(response.headers().firstValue("Set-Cookie").orElse("").contains("Secure"))
       }

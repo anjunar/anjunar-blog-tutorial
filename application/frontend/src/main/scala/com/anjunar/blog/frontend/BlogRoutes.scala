@@ -27,7 +27,8 @@ final class BlogRoutes(service: BlogService, actions: BlogActions)(using Executi
     },
     Route.view("/editorial/relationships") { context =>
       catalog.load(context.signal).map(value =>
-        new RelationshipPage(value.getOrElse(throw new HttpFailure(403)), catalog))
+        new RelationshipPage(value.getOrElse(throw new HttpFailure(403)), catalog)
+      )
     },
     Route.view("/editorial/new") { context =>
       editorial.newPost(context.signal).zip(catalog.load(context.signal))
@@ -40,10 +41,11 @@ final class BlogRoutes(service: BlogService, actions: BlogActions)(using Executi
       }
     },
     Route.view("/editorial/posts/:id/edit") { context =>
-      editorial.detail(context.pathParams("id"), context.signal).zip(catalog.load(context.signal)).map { (value, options) =>
-        val link = value.links.find(_.rel == "update").getOrElse(throw new HttpFailure(403))
-        link.path("PATCH")
-        new PostEditorPage(value, editorial, options, catalog, media)
+      editorial.detail(context.pathParams("id"), context.signal).zip(catalog.load(context.signal)).map {
+        (value, options) =>
+          val link = value.links.find(_.rel == "update").getOrElse(throw new HttpFailure(403))
+          link.path("PATCH")
+          new PostEditorPage(value, editorial, options, catalog, media)
       }
     },
     Route.view("/editorial/posts/:id") { context =>
@@ -85,7 +87,7 @@ final class BlogRoutes(service: BlogService, actions: BlogActions)(using Executi
         Some("/sign-in-required")
       case RouteFailure.LoadFailed(error: HttpFailure, _) if error.status == 403 =>
         Some("/forbidden")
-      case _: RouteFailure.NotMatched => Some("/not-found")
+      case _: RouteFailure.NotMatched                                            => Some("/not-found")
       case RouteFailure.LoadFailed(error: HttpFailure, _) if error.status == 404 =>
         Some("/not-found")
       case RouteFailure.LoadFailed(error: HttpFailure, _) if error.status == 400 =>

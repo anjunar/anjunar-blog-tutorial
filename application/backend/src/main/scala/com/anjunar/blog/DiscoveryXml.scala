@@ -28,7 +28,8 @@ object DiscoveryXml {
     val result = new StringBuilder()
     value.codePoints().forEach { code =>
       val valid = code == 9 || code == 10 || code == 13 ||
-        (code >= 0x20 && code <= 0xd7ff) || (code >= 0xe000 && code <= 0xfffd) ||
+        (code >= 0x20 && code <= 0xd7ff) ||
+        (code >= 0xe000 && code <= 0xfffd) ||
         (code >= 0x10000 && code <= 0x10ffff)
       result.appendCodePoint(if (valid) code else 0xfffd)
       ()

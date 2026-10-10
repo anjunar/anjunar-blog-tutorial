@@ -8,8 +8,8 @@ object SecurityConfig {
   val absoluteSeconds = 8 * 60 * 60
 
   def load(): SecurityConfig = sys.env.getOrElse("BLOG_COOKIE_SECURE", "true") match {
-    case "true" => SecurityConfig(true)
+    case "true"  => SecurityConfig(true)
     case "false" => SecurityConfig(false)
-    case _ => throw new IllegalArgumentException("BLOG_COOKIE_SECURE must be true or false")
+    case _       => throw new IllegalArgumentException("BLOG_COOKIE_SECURE must be true or false")
   }
 }
